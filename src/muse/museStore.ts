@@ -64,6 +64,11 @@ interface MuseStoreState {
   lastUpdated: string | null;
   loading: boolean;
   loadMuseData: () => Promise<void>;
+  // WebSocket fast path: apply a feed pushed by the server immediately,
+  // without waiting for the next poll. Only accepted if it is a valid
+  // v1 feed; source is taken from the feed itself (live only is shown
+  // as live — a seed feed here is shown as seed, never upgraded).
+  applyLiveFeed: (feed: MuseFeed) => void;
 }
 
 export const useMuseStore = create<MuseStoreState>()((set, get) => ({
@@ -71,6 +76,17 @@ export const useMuseStore = create<MuseStoreState>()((set, get) => ({
   source: 'unavailable',
   lastUpdated: null,
   loading: false,
+
+  applyLiveFeed: (feed) => {
+    if (!feed || feed.version !== 1 || !Array.isArray(feed.workspaces) || !Array.isArray(feed.agents)) return;
+    set({
+      feed: { ...EMPTY_FEED, ...feed, tasks: Array.isArray(feed.tasks) ? feed.tasks : [], events: Array.isArray(feed.events) ? feed.events : [] },
+      source: feed.source === 'live' ? 'live' : 'seed',
+      lastUpdated: new Date().toISOString(),
+      loading: false,
+    });
+    syncMuseToCore(feed);
+  },
 
   loadMuseData: async () => {
     if (get().loading) return;
