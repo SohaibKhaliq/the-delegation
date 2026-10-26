@@ -549,6 +549,39 @@ bridge-first structure above.
   honestly shows 0. Feed totals are the sum over the events
   currently in the feed (max 200), so totals can only fall if old
   events age out of the cap.
+- **Token Observer — all Muse chats, including before today.**
+  `scripts/token-observer.py` (stdlib only) is the way the panel
+  gets real cumulative counts. Source: muse.db table
+  `agent.agent_message_token_usage` (agent_id, message_id,
+  input_tokens, output_tokens, created_at epoch seconds);
+  `agent.token_usage` is empty and is NOT used, and there is no
+  cached-input column, so cached is always 0. Run it with the DB
+  totals (or a JSON file with `input_tokens`/`output_tokens`):
+  ```bash
+  python3 scripts/token-observer.py --db-input 4939806017 --db-output 26150433
+  python3 scripts/token-observer.py --db-json /tmp/db-totals.json --dry-run
+  ```
+  Residual method (solves the 200-event caveat): the script keeps
+  exactly ONE event (`token-observer`, milestone, workspace
+  `the-delegation`, agent `sonia`) whose token fields equal (DB
+  totals minus the sum of token fields on ALL OTHER events), and
+  sets `feed.tokenUsage` to the DB totals; it updates that event
+  in place, never appends, and writes nothing when the residual
+  already matches — so a no-change run needs no commit and no
+  push, and totals cannot fall when old count-bearing events age
+  out. If someone later publishes milestone token counts, the
+  residual automatically subtracts them, so there is no
+  double-counting. Honesty: input tokens in that table are
+  PER-TURN CONTEXT size, not new tokens written, so the summed
+  total is context tokens processed and the price at Muse Spark
+  1.3 Standard rates is an ESTIMATE, not a Meta bill (cached
+  breakdown unknown, cached shown as 0). The script refuses
+  secret-like arguments like the publisher does, touches no
+  workspaces/agents/tasks, and never queries a database itself —
+  the caller supplies the totals. The scheduled run (cron) and
+  the backfill publish are parent steps, not created by this
+  change; test the script on a `/tmp` feed copy first
+  (`--feed /tmp/feed-copy.json`).
 - **MANAGE TEAMS button removed.** The header no longer has a
   "MANAGE TEAMS" button (`src/interface/Header.tsx`, code deletion).
   The only team is the owner's Muse team, auto-selected from the
