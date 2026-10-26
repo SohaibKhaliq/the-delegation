@@ -12,7 +12,7 @@ import { OutputReviewModal } from './interface/OutputReviewModal';
 import SimulationView from './interface/SimulationView';
 import { SceneContext } from './simulation/SceneContext';
 import { SceneManager } from './simulation/SceneManager';
-import { useMuseStore, startMusePolling } from './muse/museStore';
+import { useMuseStore, startMusePolling } from './muse';
 
 
 // Whole-init watchdog (attempt 2): 25s after SceneManager
