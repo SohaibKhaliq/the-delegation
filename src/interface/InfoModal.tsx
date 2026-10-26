@@ -24,31 +24,27 @@ const InfoModal: React.FC<InfoModalProps> = ({ onClose }) => {
         </button>
 
         <div className="max-w-md mx-auto">
-          <div className="flex justify-center mb-8">
-            <img
-              src="images/the-delegation.svg"
-              alt="The Delegation Logo"
-              width={256}
-              className="h-auto"
-            />
+          <div className="flex flex-col items-center mb-8 leading-none">
+            <span className="text-4xl font-black tracking-tight text-darkDelegation">S.O.N.I.A</span>
+            <span className="text-xs font-medium text-zinc-400 tracking-wider mt-1">Muse Agents</span>
           </div>
 
           <h2 className="text-3xl font-black text-darkDelegation leading-[1.2] mb-6 tracking-tight text-center">
-            A no-code 3D playground to explore Agentic AI systems
+            A view-only window into real Muse agents
           </h2>
 
           <div className="space-y-6 text-zinc-500 text-[15px] leading-relaxed text-center sm:text-left">
             <p>
-              The Delegation is an experimental workspace where you stop prompting and start delegating to a team of autonomous AI agents in a living 3D office.
+              S.O.N.I.A is a view-only dashboard for Sohaib Khaliq's real Muse agents: the main agent and its subagents, their workspaces, tasks and milestone reports — shown here, controlled from Muse chat only.
             </p>
             <p>
-              Designed for enthusiasts, educators, and creative developers to understand multi-agent collaboration, making complex AI processes transparent, collaborative, and human-centered.
+              No Gemini simulation, no commands from this dashboard. Agents are controlled from Muse chat; this site only shows what they report.
             </p>
           </div>
 
           <div className="mt-6 flex flex-col items-center gap-6">
             <a
-              href="https://github.com/arturitu/the-delegation"
+              href="https://github.com/SohaibKhaliq/the-delegation"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2.5 px-8 py-3.5 bg-zinc-100 text-zinc-600 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-zinc-200 transition-all active:scale-95 cursor-pointer shadow-sm"
@@ -61,7 +57,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ onClose }) => {
 
             <div className="pt-4 border-t border-zinc-50 w-full flex flex-col items-center">
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] text-center leading-loose">
-                Developed with ❤️ by <a href="https://unboring.net" target="_blank" rel="noopener noreferrer" className="text-zinc-600 hover:text-darkDelegation transition-colors underline decoration-zinc-100 underline-offset-4">Arturo Paracuellos (unboring.net)</a>
+                By Sohaib Khaliq · Based on The Delegation (MIT code; 3D models CC BY-NC 4.0, Arturo Paracuellos — see CREDITS.md)
               </p>
             </div>
           </div>
