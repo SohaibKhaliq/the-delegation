@@ -286,6 +286,58 @@ status, like Team Flow is a visualisation of the same feed.
   blocked change appears within ~10s of its feed push (plus the
   walk to the desk/boardroom), not instantly.
 
+### Enhanced Animations v1 (VIEW-ONLY — smoother existing clips, no new assets)
+
+Roadmap Step 3. Upstream "Enhanced Animations" is richer, more
+fluid, context-aware animation from a simulation. This fork has no
+simulation, so the adaptation is narrower: **the existing baked
+clips now transition smoothly and vary by agent, when driven by
+the real Muse feed**. No new clip, GLB, facial expression or
+speech bubble was added, and no emotion is invented — a blocked
+agent still just waits in `listen`, a working agent still just
+sits in `sit_work`; only HOW they move between poses changed.
+
+- **Audit (what was there):** 12 baked clips in `character.glb`
+  (`Idle, Walk, Talk, Listen, Sit, Sit_Idle, Sit_Work, LookAround,
+  Happy, Sad, Pick, Wave`), baked per-bone-frame into a GPU buffer
+  with exactly ONE clip index per character instance. Switching
+  clips wrote a new index + start time, so every pose change
+  snapped instantly to frame 0 of the new clip. There was no
+  blend field at all.
+- **GPU crossfade (0.35s, smoothstep-eased):** the per-instance
+  buffer grew from 8 to 12 floats (`src/simulation/behavior/
+  AgentStateBuffer.ts`): a third vec4 stores the outgoing clip
+  (index, start time, loop flag, blend duration) and the old
+  unused slot stores the blend start time. The vertex shader
+  (`src/simulation/entities/CharacterManager.ts`) now samples
+  both clips and mixes their bone matrices, easing from the old
+  pose to the new one over 0.35s. Replaying the SAME clip never
+  blends. When no blend is active the shader runs the old
+  single-clip path exactly.
+- **Context variation, existing clips only:** looping idle-family
+  clips (`Idle`, `Sit_Idle`, `Sit_Work`, `Listen`) start with a
+  deterministic per-agent phase offset (`(index + 1) * 0.73s`
+  modulo clip duration), so idle, seated-working and waiting
+  agents no longer pose in perfect sync. Walk and one-shot clips
+  are deliberately unoffset (walk must start with movement,
+  one-shots must start at frame 0). No new idle ticker was added:
+  idle agents already vary via the existing autonomous driver
+  (`look_around` / `wave` / `happy`), and a second ticker would
+  fight both that driver and the Embodied AI re-application.
+- **Untouched:** the Embodied AI mapping (blocked > working >
+  idle), Dynamic Environment prop sync, header branding, MANAGE
+  TEAMS removal, LOGS/Kanban hiding, Project Info and token
+  pricing all behave exactly as before; only the pose
+  transitions between the same states changed.
+- **To see it (owner's Chrome only):** after deploy, publish a
+  real milestone that flips an agent to `running`, then to done.
+  Watch that character: walk -> sit-down -> seated work, and
+  later work -> walk -> spawn idle, should now ease between
+  poses instead of snapping, and two idle agents standing side
+  by side should no longer mirror each other frame-for-frame.
+  Smoothness cannot be verified headlessly — a blank headless
+  panel is a browser (WebGPU) limitation, not a scene bug.
+
 ### Muse hierarchy: main agent + subagents (VIEW-ONLY)
 
 Agents in the feed are Muse's real hierarchy, not generic Delegation
