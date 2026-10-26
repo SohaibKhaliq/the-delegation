@@ -104,6 +104,51 @@ What drives the UI instead — `src/muse/`:
 - Timestamps are ISO 8601 strings. `filesChanged` lists file names only,
   never file contents or secrets.
 
+### Muse hierarchy: main agent + subagents (VIEW-ONLY)
+
+Agents in the feed are Muse's real hierarchy, not generic Delegation
+teams, and every task is linked to the agent that did it:
+
+- **Main agent (exactly one):** `S.O.N.I.A`, `kind: "main-agent"`,
+  `role: "coordinator"`. She is GLOBAL: she coordinates every workspace
+  even though her home `workspaceId` is `the-delegation`. She is never
+  duplicated per workspace, because agent ids must stay unique.
+- **Subagents (role names only, never fake person names):**
+  `ADE Builder` (ade), `Legacy Admin` (legacy-cms),
+  `Trevora Builder` (trevora), `ZentaCode Builder` (zentacode),
+  `Delegation Builder` + `Delegation Adapter Builder` (the-delegation),
+  each with `kind: "subagent"` and exactly one `workspaceId`.
+  Trevora/ZentaCode subagents currently have no task in the feed — that
+  is honest, not a gap to fill with invented work. No agent is ever
+  claimed as `running` in this feed unless a real event just reported
+  it running; the current feed uses only `idle` / `done` / `pending`.
+- **Tasks:** every task carries `workspaceId` AND `agentId`.
+  Coordination tasks done directly by the parent agent link to `sonia`
+  (e.g. banner hide); build tasks link to their builder subagent
+  (e.g. live bridge and fast bridge to `delegation-builder`, view-only
+  adapter to `delegation-adapter-builder`, Legacy work to
+  `legacy-admin`). A task must never be published with an `agentId`
+  that is not in the feed, or with a workspace that does not match
+  where the work happened — the publisher script does not enforce
+  this, so the publisher must check it by hand.
+- **How the UI shows it (`src/muse/museSync.ts`):** on every feed load,
+  the feed is converted to one Delegation team with id `muse`
+  (lead agent = S.O.N.I.A, subagents = all subagents, workspace shown
+  in each subagent's description) and saved as a custom system, and
+  every feed task becomes a core task with id `muse:<taskId>` and
+  `assignedAgentId` = that agent's numeric index in the Muse team.
+  That is what drives Team Flow (the Muse hierarchy), Kanban (Muse
+  tasks in Scheduled / On Hold / In Progress / Done columns) and the
+  Inspector (select a Muse agent to see its tasks). The active team is
+  switched to `muse` only when the stored selection is still the
+  factory default; a user who explicitly picks another team is never
+  snapped back by polling, and tasks the user created in the editor
+  (non-`muse:` ids) are never touched by the sync. Muse events are
+  NOT copied into the simulation ActionLog — that log stays the
+  simulation's audit trail. Future bridge events should set
+  `agentId` to the subagent that did the work (or `sonia` only for
+  main-agent coordination) and `kind`/`workspaceId` accordingly.
+
 ### Live bridge (git-based, VIEW-ONLY)
 
 There is deliberately **no POST endpoint and no shared secret** on the
