@@ -35,6 +35,12 @@
 //
 // This module never starts an agent, sends a command, approves output,
 // or calls an LLM.
+//
+// DECOUPLING BOUNDARY: this is the ONLY module in src/muse/ that
+// writes into the upstream core stores (coreStore, teamStore), and
+// the only place feed data becomes a core team/tasks. Everything
+// outside src/muse/ reaches the feed through src/muse/index.ts;
+// nothing outside src/muse/ imports museSync directly anymore.
 import type { AgenticSystem, AgentNode } from '../data/agents';
 import { DEFAULT_AGENTIC_SET_ID } from '../data/agents';
 import { useCoreStore, type TaskStatus } from '../integration/store/coreStore';
