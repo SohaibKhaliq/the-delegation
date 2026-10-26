@@ -16,6 +16,7 @@ import { VisualConfigurator } from './interface/VisualConfigurator/VisualConfigu
 import { SceneContext } from './simulation/SceneContext';
 import { SceneManager } from './simulation/SceneManager';
 import { useMuseStore, startMusePolling } from './muse/museStore';
+import { connectMuseSocket } from './muse/museSocket';
 
 
 const App: React.FC = () => {
@@ -27,11 +28,14 @@ const App: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [kanbanHeight, setKanbanHeight] = useState(220);
 
-  // VIEW-ONLY Muse feed: load on mount, refresh by polling the feed only.
+  // VIEW-ONLY Muse feed: load on mount, refresh by polling (10s fallback)
+  // AND by WebSocket (/ws) for near-realtime updates when available.
   // This never sends a command to Muse; see src/muse/museStore.ts.
   useEffect(() => {
     void useMuseStore.getState().loadMuseData();
-    return startMusePolling(10000);
+    const stopPolling = startMusePolling(10000);
+    const disconnectSocket = connectMuseSocket();
+    return () => { stopPolling(); disconnectSocket(); };
   }, []);
 
   const startResizing = useCallback(() => {
