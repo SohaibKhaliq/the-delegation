@@ -1,4 +1,4 @@
-import { Info, KeyRound, Maximize2, Settings } from 'lucide-react';
+import { Info, Eye, Maximize2, Settings } from 'lucide-react';
 import React, { useState } from 'react';
 import packageJson from '../../package.json';
 import { useCoreStore } from '../integration/store/coreStore';
@@ -9,10 +9,9 @@ import InfoModal from './InfoModal';
 const version = packageJson.version;
 
 const Header: React.FC = () => {
-  const { llmConfig, isBYOKOpen, setBYOKOpen } = useUiStore();
+  const { isBYOKOpen, setBYOKOpen } = useUiStore();
   const { setViewMode } = useCoreStore();
   const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const hasKey = !!llmConfig.apiKey;
 
   const handleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -92,12 +91,9 @@ const Header: React.FC = () => {
           <button
             onClick={() => setBYOKOpen(true)}
             className="relative text-zinc-400 hover:text-darkDelegation transition-colors p-1"
-            title="API Key (BYOK)"
+            title="View-only — no API key needed"
           >
-            <KeyRound size={16} className={hasKey ? 'text-emerald-500 hover:text-emerald-600' : ''} />
-            {hasKey && (
-              <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            )}
+            <Eye size={16} />
           </button>
         </div>
       </div>
