@@ -61,8 +61,20 @@ export class SceneManager {
   private initError: string | null = null;
   private initErrorElement: HTMLElement | null = null;
 
+  // Whole-init watchdog support (attempt 2): set ONLY when the
+  // animation loop is actually started, i.e. init() has fully
+  // succeeded (office, with or without characters). A hanging stage
+  // (office/character loadAsync that never settles) never reaches
+  // this flag, so App.tsx's independent timer can tell a hang from
+  // a success without awaiting any scene promise itself.
+  private initSucceeded = false;
+
   public getInitError(): string | null {
     return this.initError;
+  }
+
+  public isInitialized(): boolean {
+    return this.initSucceeded;
   }
 
   private showInitMessage(message: string, fatal: boolean): void {
@@ -104,7 +116,12 @@ export class SceneManager {
     );
   }
 
-  constructor(container: HTMLElement) {
+  // onInitialized is called the moment init succeeds, so App.tsx
+  // can clear its whole-init watchdog timer on success. It is
+  // stored BEFORE this.init() runs (constructor order matters):
+  // init() is fire-and-forget and async, but registering the
+  // callback first means even a fast success cannot miss it.
+  constructor(container: HTMLElement, private onInitialized?: () => void) {
     this.container = container;
     this.engine = new Engine(container);
     this.stage = new Stage(this.engine.renderer.domElement);
@@ -246,7 +263,12 @@ export class SceneManager {
       }
 
       // Reached only on a successful init (office, with or without
-      // characters). This is the single place the loop is started.
+      // characters). This is the single place the loop is started,
+      // and the single place the success flag is set: any stage
+      // that hangs (renderer, office load, character load, setup)
+      // never reaches here, so the App watchdog can detect it.
+      this.initSucceeded = true;
+      this.onInitialized?.();
       this.engine.renderer.setAnimationLoop(this.animate.bind(this));
 
     this.unsubs.push(useUiStore.subscribe((s, prev) => {
