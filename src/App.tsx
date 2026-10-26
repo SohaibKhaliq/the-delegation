@@ -11,7 +11,6 @@ import InspectorPanel from './interface/InspectorPanel';
 import { KanbanPanel } from './interface/KanbanPanel';
 import { OutputReviewModal } from './interface/OutputReviewModal';
 import SimulationView from './interface/SimulationView';
-import { VisualConfigurator } from './interface/VisualConfigurator/VisualConfigurator';
 import { SceneContext } from './simulation/SceneContext';
 import { SceneManager } from './simulation/SceneManager';
 import { useMuseStore, startMusePolling } from './muse/museStore';
@@ -21,7 +20,7 @@ const App: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const managerRef = useRef<SceneManager | null>(null);
   const [sceneManager, setSceneManager] = useState<SceneManager | null>(null);
-  const { isKanbanOpen, setIsResizing, viewMode, setViewMode } = useCoreStore();
+  const { isKanbanOpen, setIsResizing, viewMode } = useCoreStore();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [kanbanHeight, setKanbanHeight] = useState(220);
@@ -122,19 +121,11 @@ const App: React.FC = () => {
           {!isFullscreen && viewMode !== 'design' && <InspectorPanel />}
         </div>
 
-        {/* Design Mode Overlay (Modal) */}
-        {viewMode === 'design' && (
-          <div
-            className="fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-6 bg-white/40 backdrop-blur-xl"
-          >
-            <div
-              className="w-full h-full bg-white rounded-2xl shadow-2xl border border-zinc-200/50 overflow-hidden flex flex-col"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <VisualConfigurator />
-            </div>
-          </div>
-        )}
+        {/* Design Mode / team editor overlay REMOVED by owner order:
+            with the MANAGE TEAMS button gone, the team editor must not
+            be reachable — including from a persisted old viewMode in
+            localStorage. VisualConfigurator.tsx remains on disk but
+            is no longer mounted anywhere. */}
 
         {/* Final output — fixed viewport overlay */}
         <FinalOutputModal />
