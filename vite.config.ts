@@ -1,10 +1,9 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig, loadEnv} from 'vite';
+import {defineConfig} from 'vite';
 
-export default defineConfig(({mode}) => {
-  const env = loadEnv(mode, '.', '');
+export default defineConfig(() => {
   return {
     // Coolify deployment on agents.zentacode.com serves this app at the
     // domain root, so the base must be '/' (upstream used '/the-delegation/'
@@ -12,9 +11,10 @@ export default defineConfig(({mode}) => {
     // be requested under /the-delegation/ and 404 at the root domain.
     base: '/',
     plugins: [react(), tailwindcss()],
-    define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-    },
+    // VIEW-ONLY: no Gemini key is defined into the client build. The old
+    // process.env.GEMINI_API_KEY define was removed with the Gemini
+    // provider; defining a key here would have baked it into client JS.
+    define: {},
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
