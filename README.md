@@ -84,6 +84,27 @@ untouched.
   fake auto-counter, no text-length estimation, and no live Muse
   token API. Until a count-bearing event is published, the panel
   honestly shows 0.
+- **Token Observer — all Muse chats, including before today:**
+  `scripts/token-observer.py` (stdlib only) keeps the panel in step
+  with every Muse chat. Source: muse.db table
+  `agent.agent_message_token_usage` (agent_id, message_id,
+  input_tokens, output_tokens, created_at epoch seconds);
+  `agent.token_usage` is empty and is NOT used, and there is no
+  cached-input column, so cached is always 0. The panel computes
+  totals as the sum over token fields on events in the feed (max
+  200), so the observer uses the residual method: it maintains
+  exactly ONE event (`token-observer`, milestone, workspace
+  `the-delegation`, agent `sonia`) whose token fields equal (DB
+  totals minus the sum on all other events), and sets
+  `feed.tokenUsage` to the DB totals; it updates that one event in
+  place, never appends, and writes nothing when nothing changed --
+  so totals cannot fall when old events age out of the 200-event
+  cap. Honesty: input tokens in that table are PER-TURN CONTEXT
+  size, not new tokens written, so the summed total is context
+  tokens processed and the price at Muse Spark Standard rates is
+  an ESTIMATE, not a Meta bill (cached breakdown unknown). The
+  observer script itself is run by the parent (cron); it is not
+  created here, and the backfill publish is a separate parent step.
 - **LOGS panel removed:** the LOGS panel (ACTIVITY / TECHNICAL tabs,
   "AWAITING ACTIONS..." empty state) no longer renders in the main
   view (`src/App.tsx`, code deletion, not CSS hiding).
