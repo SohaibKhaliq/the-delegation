@@ -7,7 +7,10 @@
 </p>
 
 > [!IMPORTANT]
-> **\*** This experience requires **BYOK (Bring Your Own Key)**. You will need a **[Gemini API key](https://aistudio.google.com/app/apikey)** to run the simulation. Deep integration enables native support for text, and multimodal generation (**Nano Banana**, **Lyria 3**, **Veo 3.1**). You can also **clone or fork** this repository to run it locally.
+> **This fork is VIEW-ONLY and does not use Gemini.** There is no API key to
+> enter, no simulation to run, and no command channel back to Muse. The
+> dashboard displays real Muse agent data through the Muse-data adapter
+> below. Agents are controlled from Muse chat only.
 <div align="center">
   <img src="public/images/the-delegation-UI.jpg" width="100%" alt="The Delegation Hero">
 </div>
@@ -19,6 +22,89 @@
 # A no-code 3D playground to explore, design, and interact with Agentic AI systems
 
 This project is designed for **AI enthusiasts, educators, and creative developers** looking to understand multi-agent collaboration in a living 3D office without writing a single line of code.
+
+## Muse-data adapter (VIEW-ONLY — this fork)
+
+Upstream The Delegation runs a Gemini simulation: `AgentBrain` calls
+`GeminiProvider`, tasks are proposed/completed by LLM tool calls, and the
+BYOK modal collects a Gemini key. **All of that is removed in this fork:**
+
+- `src/core/llm/providers/GeminiProvider.ts` — deleted.
+- `src/core/agent/AgentBrain.ts` — replaced with a view-only stub: `think`,
+  `spark`, `executeTask`, and `concludeProject` return a view-only message
+  and make no LLM call, read no key, and open no key modal.
+- `src/interface/BYOKModal.tsx` — replaced with a "View-only — no key
+  needed" notice (same props, no key input, no key storage, no link to a
+  key-issuing page). The header key button is now a view-only eye badge.
+- `vite.config.ts` — the build-time `GEMINI_API_KEY` define was removed, so
+  no key can be baked into client JS. `@google/genai` was dropped from
+  `package.json` / `package-lock.json`.
+- `server.js` — serves the SPA on `PORT` (default 3000), `GET /health`, and
+  the read-only feed endpoint below. No POST endpoint exists.
+
+What drives the UI instead — `src/muse/`:
+
+1. **Load order:** `GET /api/muse-state` first; if it does not return a feed
+   with `"source": "live"`, fall back to `GET /muse-data.json` (the bundled
+   seed file, copied into `dist/` at build time). If neither is available,
+   the banner shows "Feed unavailable". Polling every 30s only re-reads
+   the feed. There is no write path to Muse by design.
+2. **Seed file:** `public/muse-data.json` is explicitly marked
+   `"source": "seed"` with a `sourceLabel` saying it is sample data, not a
+   live feed. Its workspaces/agents/tasks are shaped from real known work
+   (ADE, Legacy CMS, Trevora, ZentaCode; S.O.N.I.A coordinator + builders)
+   but must not be presented as live activity until a live bridge replaces it.
+3. **Live bridge (not built yet):** a Muse event bridge publishes a feed in
+   the schema below to `GET /api/muse-state` (server.js serves
+   `dist/muse-data.json` for that route today, so replacing that file's
+   contents with a live feed is enough — no UI rewrite). The bridge posts
+   milestone events only (agent start, milestone, file changed, commit,
+   done, blocked) — never passwords, keys, or private chat content.
+
+### Feed JSON schema (version 1)
+
+```json
+{
+  "version": 1,
+  "source": "seed",
+  "sourceLabel": "SEED / SAMPLE DATA — not a live Muse feed yet.",
+  "generatedAt": "2026-10-26T19:19:00+05:00",
+  "note": "View-only snapshot. No agent is started, commanded, or approved from this dashboard.",
+  "workspaces": [{ "id": "ade", "name": "ADE", "description": "..." }],
+  "agents": [{
+    "id": "sonia", "name": "S.O.N.I.A", "role": "coordinator",
+    "workspaceId": "ade", "status": "idle",
+    "currentTask": null, "lastReport": "..."
+  }],
+  "tasks": [{
+    "id": "legacy-stats-restored", "title": "...", "workspaceId": "legacy-cms",
+    "agentId": "legacy-admin", "status": "done",
+    "report": "...", "filesChanged": ["..."]
+  }],
+  "events": [{
+    "id": "evt-legacy-stats", "timestamp": "2026-10-26T18:12:00+05:00",
+    "type": "done", "workspaceId": "legacy-cms", "agentId": "legacy-admin",
+    "taskId": "legacy-stats-restored", "report": "...", "filesChanged": ["..."]
+  }]
+}
+```
+
+- Agent status: `idle | running | done | blocked | pending`.
+- Task status: `pending | running | done | blocked`.
+- Event type: `started | milestone | file_changed | commit | done | blocked`.
+- Timestamps are ISO 8601 strings. `filesChanged` lists file names only,
+  never file contents or secrets.
+
+### What is still Gemini-adjacent (dormant, no calls)
+
+The dormant model/pricing config files (`src/core/llm/constants.ts`,
+`pricing.ts`, `types.ts`) and the design-mode team editor's per-agent model
+picker / pricing modal still mention Gemini model names, but they make no
+API call: the only code path that instantiated a provider (`AgentBrain`)
+no longer does, and the provider file is deleted. Removing those config
+screens entirely is a larger UI refactor and is intentionally left for a
+later cleanup pass, not hidden. Likewise `uiStore.llmConfig` still holds an
+empty default config for type compatibility; nothing reads its `apiKey`.
 
 ## Getting Started
 
