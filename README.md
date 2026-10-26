@@ -44,23 +44,31 @@ BYOK modal collects a Gemini key. **All of that is removed in this fork:**
 
 What drives the UI instead — `src/muse/`:
 
-1. **Load order:** `GET /api/muse-state` first; if it does not return a feed
-   with `"source": "live"`, fall back to `GET /muse-data.json` (the bundled
-   seed file, copied into `dist/` at build time). If neither is available,
-   the banner shows "Feed unavailable". Polling every 30s only re-reads
-   the feed. There is no write path to Muse by design.
+1. **Load order (FAST bridge):** the fresh feed file straight from
+   GitHub first
+   (`https://raw.githubusercontent.com/SohaibKhaliq/the-delegation/main/public/muse-data.json`,
+   cache-busting timestamp query, `cache: 'no-store'`), accepted only
+   if its `"source"` is `"live"`; then `GET /api/muse-state` (live only);
+   then `GET /muse-data.json` (the bundled file, copied into `dist/` at
+   build time, labelled from its own source). If none is available, the
+   banner shows "Feed unavailable". Polling every 10s only re-reads
+   the feed. There is no write path to Muse by design. See
+   "Fast bridge" below — Coolify deploy is no longer on the critical
+   path for feed freshness.
 2. **Seed file:** `public/muse-data.json` is explicitly marked
    `"source": "seed"` with a `sourceLabel` saying it is sample data, not a
    live feed. Its workspaces/agents/tasks are shaped from real known work
    (ADE, Legacy CMS, Trevora, ZentaCode; S.O.N.I.A coordinator + builders)
    but must not be presented as live activity until a live bridge replaces it.
-3. **Live bridge (built, git-based):** see "Live bridge" below. A Muse
-   agent publishes milestone events by updating `public/muse-data.json`
-   with `scripts/publish-muse-event.py`, committing that one file, and
-   pushing to `main`. Coolify then builds/deploys it; server.js serves
-   `dist/muse-data.json` for `GET /api/muse-state`, so the dashboard's
-   30s polling then shows `"source": "live"` — no UI rewrite, no POST
-   endpoint, no shared secret.
+3. **Live bridge (built, git-based) + fast feed:** see "Live bridge"
+   and "Fast bridge" below. A Muse agent publishes milestone events by
+   updating `public/muse-data.json` with
+   `scripts/publish-muse-event.py`, committing that one file, and
+   pushing to `main`. The dashboard now reads that fresh file directly
+   from GitHub raw (10s polling), so it shows `"source": "live"`
+   without waiting for a Coolify deploy — no POST endpoint, no shared
+   secret. Coolify deploy still matters for code changes, not for feed
+   data; `GET /api/muse-state` remains as a fallback.
 
 ### Feed JSON schema (version 1)
 
@@ -154,11 +162,46 @@ secret. The script refuses secret-like arguments (a `key=`/`token=`/
 in that case. Only metadata: ids, names, statuses, file paths, short
 reports. Events are capped at the latest 200.
 
-**Latency, honestly:** this is NOT second-by-second live. The dashboard
-polls every 30s, but a new event only appears after the publisher's
-commit is pushed AND Coolify builds/deploys it — typically 1–2 minutes
-for this app. Until that deploy lands, the dashboard keeps showing the
-previous feed. Never describe this bridge as real-time or instant.
+**Latency, honestly (old path):** before the fast bridge, this was NOT
+second-by-second live. The dashboard polled every 30s, but a new event
+only appeared after the publisher's commit was pushed AND Coolify
+built/deployed it — typically 1–2 minutes for this app. Until that
+deploy landed, the dashboard kept showing the previous feed. Never
+describe that path as real-time or instant.
+
+### Fast bridge (GitHub raw first, VIEW-ONLY)
+
+The publisher workflow above is unchanged (script + commit + push to
+`main`). What changed is what the dashboard reads, in
+`src/muse/museStore.ts` (polling every 10s, started in `src/App.tsx`):
+
+1. **First:** `https://raw.githubusercontent.com/SohaibKhaliq/the-delegation/main/public/muse-data.json`
+   with a cache-busting `?t=<timestamp>` query and fetch
+   `cache: 'no-store'`. Accepted **only** if it is a valid v1 feed
+   whose `"source"` is `"live"`. A seed file from GitHub is never
+   shown as live — it falls through instead.
+2. **Then:** `GET /api/muse-state` (deployed server feed, live only).
+3. **Then:** `GET /muse-data.json` (bundled file, labelled from its own
+   source — seed unless its `source` is `"live"`).
+4. **Otherwise:** "Feed unavailable". The banner shows LIVE only when
+   the accepted feed's source is `"live"`; seed is never mislabelled
+   as live.
+
+**Expected latency, honestly:** push takes ~10s, polling is 10s, so a
+new event should typically appear in **~20–30s**. That is a target,
+not a guarantee: `raw.githubusercontent.com` may cache a file for a
+short time despite the cache-busting query and `no-store`, so an
+occasional event may take longer, and a failed GitHub fetch simply
+falls back to `/api/muse-state` / the bundled file. Coolify deploy is
+no longer on the critical path for feed freshness — it still matters
+for code changes, not for feed data.
+
+**Still no WebSocket, still no token:** this step does not add a POST
+endpoint, a shared secret, or a WebSocket. A true sub-second push
+would need a server write endpoint plus a token both Coolify and Muse
+hold without sharing it in chat — that is a further step, deliberately
+not in this task. No Gemini was reintroduced: no `@google/genai`, no
+`GeminiProvider`, no key, no commands from the dashboard.
 
 **Why the design is safe:** the dashboard has no write path at all
 (no POST, no commands), so viewing it can never start, approve, or
