@@ -38,6 +38,7 @@
 // touches the feed except through this barrel.
 
 export { useMuseStore, startMusePolling } from './museStore';
+export { connectMuseSocket } from './museSocket';
 export {
   MUSE_TEAM_ID,
   museAgentIndexMap,
