@@ -1,7 +1,6 @@
-import { FolderOpen, Lock, MessageSquare, MessageSquareWarning, GitPullRequest } from 'lucide-react';
+import { FolderOpen, Lock, MessageSquare } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
 import { getAgentSet, getAllCharacters } from '../data/agents';
-import { USER_COLOR, USER_COLOR_LIGHT, USER_COLOR_SOFT } from '../theme/brand';
 import { useChatAvailability } from '../integration/hooks/useChatAvailability';
 import { useCoreStore } from '../integration/store/coreStore';
 import { useTeamStore, useActiveTeam } from '../integration/store/teamStore';
@@ -11,7 +10,6 @@ import { Avatar } from './components/Avatar';
 import AgentStatusPanel from './AgentStatusPanel';
 import ChatPanel from './ChatPanel';
 import ProjectView from './ProjectView';
-import { ReferenceImages } from './components/ReferenceImages';
 
 interface InspectorPanelProps {
   isFloating?: boolean;
@@ -20,7 +18,7 @@ interface InspectorPanelProps {
 const InspectorPanel: React.FC<InspectorPanelProps> = ({ isFloating }) => {
   const { selectedNpcIndex, isChatting } = useUiStore();
   const scene = useSceneManager();
-  const { phase, setFinalOutputOpen, tasks } = useCoreStore();
+  const { phase, setFinalOutputOpen } = useCoreStore();
   const system = useActiveTeam();
   const agents = getAllCharacters(system);
   const { canChat, reason } = useChatAvailability(selectedNpcIndex);
@@ -29,14 +27,10 @@ const InspectorPanel: React.FC<InspectorPanelProps> = ({ isFloating }) => {
   const agent = selectedNpcIndex !== null ? agents.find(a => a.index === selectedNpcIndex) ?? null : null;
   const isProjectReady = phase === 'done' && selectedNpcIndex === system.leadAgent.index;
 
-  const isLeadAgentIdle = selectedNpcIndex === system.leadAgent.index && phase === 'idle';
-  const currentTask = tasks.find(t => t.assignedAgentId === selectedNpcIndex && t.status === 'in_progress');
-  const tasksOnHold = agent ? tasks.filter(
-    t => t.assignedAgentId === agent.index && t.status === 'on_hold'
-  ) : [];
-  const hasTaskOnHold = tasksOnHold.length > 0;
-
-  const needsInput = isLeadAgentIdle || hasTaskOnHold;
+  // REVIEW REQUESTED card removed (owner order, view-only Muse dashboard):
+  // the simulation "review the user brief / chat about the brief" card and
+  // its task-on-hold "Review Task" variant no longer render here. The
+  // generic chat action below is untouched.
 
   // When canChat transitions true → false, end any active chat
   useEffect(() => {
@@ -108,77 +102,8 @@ const InspectorPanel: React.FC<InspectorPanelProps> = ({ isFloating }) => {
                 </div>
               </div>
 
-              {/* Conditional Discussion/Chat Actions */}
-              {needsInput && isChatting && (
-                <div
-                  className="border rounded-xl p-3 shadow-sm animate-in fade-in slide-in-from-top-1"
-                  style={{ backgroundColor: USER_COLOR_LIGHT, borderColor: USER_COLOR_SOFT }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center justify-center w-4 h-4 rounded text-white shadow-sm" style={{ backgroundColor: USER_COLOR }}>
-                        <MessageSquareWarning size={10} strokeWidth={3} />
-                      </div>
-                      <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: USER_COLOR }}>Review Requested</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600">Active</span>
-                    </div>
-                  </div>
-                  <p className="text-[12px] font-bold text-darkDelegation leading-tight mt-1.5">
-                    {isLeadAgentIdle
-                      ? "Waiting to review user brief."
-                      : `${agent?.name} needs input.`}
-                  </p>
-                </div>
-              )}
-
-              {needsInput && !isChatting ? (
-                <div className="flex flex-col gap-3 p-4 bg-zinc-50 border border-zinc-100 rounded-xl animate-in fade-in slide-in-from-top-1 shadow-sm">
-                  <div className="flex items-center gap-1.5 font-black uppercase tracking-widest text-[9px]">
-                    <div
-                      className="flex items-center justify-center w-5 h-5 border rounded-lg"
-                      style={{ backgroundColor: USER_COLOR_LIGHT, borderColor: USER_COLOR_SOFT, color: USER_COLOR }}
-                    >
-                      <MessageSquareWarning size={12} strokeWidth={3} />
-                    </div>
-                    <span style={{ color: USER_COLOR }}>Review Requested</span>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <p className="text-[12px] font-bold text-darkDelegation leading-tight">
-                      {isLeadAgentIdle
-                        ? "Review the user brief with the team."
-                        : `I've finished the task "${tasksOnHold[0]?.title ?? 'Work'}". I've submitted my work for your review.`}
-                    </p>
-
-                    {isLeadAgentIdle && (system.outputType === 'image' || system.outputType === 'video') && (
-                      <div className="mt-1 pt-3 border-t border-zinc-200/50">
-                        <ReferenceImages />
-                      </div>
-                    )}
-
-                    <button
-                      onClick={isLeadAgentIdle ? handleStartChat : () => useUiStore.getState().setActiveAuditTaskId(tasksOnHold[0]?.id)}
-                      disabled={isLeadAgentIdle ? !canChat : false}
-                      className="flex items-center justify-center gap-2 bg-darkDelegation hover:bg-black active:scale-95 disabled:opacity-50 text-white px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm mt-1"
-                    >
-                      {isLeadAgentIdle ? (
-                        <>
-                          <MessageSquare size={14} strokeWidth={3} />
-                          Chat about the brief
-                        </>
-                      ) : (
-                        <>
-                          <GitPullRequest size={14} strokeWidth={3} />
-                          Review Task
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* Chat Action Button below name - ONLY SHOW IF NOT NEEDS DISCUSSION (OR IF CHATTING) */
+              {/* REVIEW REQUESTED card removed — see note above. */}
+                {/* Chat actions */}
                 <div className="w-full">
                   {agent.index === system.user.index ? (
                     null // No chat button for the local player
@@ -222,7 +147,6 @@ const InspectorPanel: React.FC<InspectorPanelProps> = ({ isFloating }) => {
                     </button>
                   )}
                 </div>
-              )}
             </div>
           </div>
 
