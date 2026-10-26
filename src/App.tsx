@@ -5,7 +5,6 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useCoreStore } from './integration/store/coreStore';
-import { ActionLogPanel } from './interface/ActionLogPanel';
 import { FinalOutputModal } from './interface/FinalOutputModal';
 import Header from './interface/Header';
 import InspectorPanel from './interface/InspectorPanel';
@@ -22,7 +21,7 @@ const App: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const managerRef = useRef<SceneManager | null>(null);
   const [sceneManager, setSceneManager] = useState<SceneManager | null>(null);
-  const { isLogOpen, isKanbanOpen, setIsResizing, viewMode, setViewMode } = useCoreStore();
+  const { isKanbanOpen, setIsResizing, viewMode, setViewMode } = useCoreStore();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [kanbanHeight, setKanbanHeight] = useState(220);
@@ -88,8 +87,12 @@ const App: React.FC = () => {
         {/* View-only Muse data banner hidden per owner request (component kept in src/muse/MuseViewOnlyBanner.tsx for easy restore) */}
 
         <div className="flex-1 flex flex-row min-h-0 min-w-0 overflow-hidden">
-          {/* Left: Log panel */}
-          {isLogOpen && !isFullscreen && viewMode !== 'design' && <ActionLogPanel />}
+          {/* LOGS panel removed by owner order (code deletion, not CSS hiding):
+              the ACTIVITY / TECHNICAL tabs and "AWAITING ACTIONS..." empty
+              state no longer render. ActionLogPanel.tsx remains on disk
+              but is no longer mounted anywhere; its only setLogOpen callers
+              were internal to that panel itself, so no other entry point
+              opens it. Team Flow, Kanban and Project Info are untouched. */}
 
           {/* Center: canvas + kanban drawer stacked */}
           <div className="relative flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-zinc-50">
