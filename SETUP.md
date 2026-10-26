@@ -671,6 +671,32 @@ watch walk -> sit-down -> work -> walk -> spawn idle ease
 instead of snap, on the owner's Chrome only — smoothness
 cannot be verified headlessly.
 
+### Human-Agent Spatial Interaction v1 (Roadmap Step 4 — view-only)
+
+Upstream this is direct multi-party collaboration in the office,
+driven by a simulation. Here there is no simulation and no
+command path, so it is only the viewer's spatial interaction
+with real feed data. Clicking an agent character in 3D already
+selected it (camera follows); now `src/muse/museSpatial.ts`
+derives that agent's workspace, current task, last report and
+same-workspace peers from the feed, and
+`src/interface/MuseSpatialPanel.tsx` shows them read-only in
+the Inspector (nothing for non-Muse teams or the user
+character). On the same click, `SceneManager.
+applyMuseSpatialGathering()` walks idle subagent peers from
+the same workspace to the nearest free `idle`-arrival POIs
+around the clicked agent — existing NavMesh/POIs and walk ->
+idle clips only, no new GLBs or animations. Working/blocked
+peers are never moved (Embodied AI wins), the main agent is
+never gathered around a subagent, and re-clicking the same
+agent does not re-walk peers; gathering is transient and the
+next embodied state change wins. Clicking is strictly
+read-only: it changes no feed state and sends nothing to Muse.
+To see it: after deploy, click an agent in the office on the
+owner's Chrome and check the Inspector panel plus idle
+teammates walking over nearby — clicking/gathering cannot be
+verified headlessly.
+
 ## 5. Secondary: local run
 
 This is for developing the dashboard itself, not for publishing
