@@ -25,13 +25,12 @@ const Header: React.FC = () => {
 
   return (
     <header className="h-14 border-b border-zinc-100 flex items-center justify-between px-6 bg-white shrink-0 relative z-40">
-      {/* Left: Project Title */}
+      {/* Left: Project Title — owner branding (S.O.N.I.A / Muse Agents) */}
       <div className="flex items-center min-w-0">
-        <img
-          src="images/the-delegation.svg"
-          alt="The Delegation"
-          className="h-10 w-auto shrink-0"
-        />
+        <div className="flex flex-col leading-none shrink-0">
+          <span className="text-lg font-black tracking-tight text-darkDelegation">S.O.N.I.A</span>
+          <span className="text-[10px] font-medium text-zinc-400 tracking-wider">Muse Agents</span>
+        </div>
 
         <div className="flex items-center gap-3 self-start mt-3 ml-2 min-w-0">
           <div className="flex items-center gap-1 shrink-0">
@@ -41,20 +40,20 @@ const Header: React.FC = () => {
             >
               <Info size={14} strokeWidth={2} />
             </button>
-            <span className="text-[10px] font-medium text-zinc-400 font-mono">v{version}</span>
+            <span className="text-[10px] font-medium text-zinc-400 font-mono">v{version}-muse</span>
           </div>
 
           <div className="flex items-center gap-3 min-w-0">
             <a
-              href="https://x.com/arturitu"
+              href="https://github.com/sohaibkhaliq"
               target="_blank"
               rel="noopener"
               className="text-[10px] font-medium text-zinc-400 hover:text-darkDelegation transition-colors truncate"
             >
-              @arturitu
+              @sohaibkhaliq
             </a>
             <a
-              href="https://github.com/arturitu/the-delegation"
+              href="https://github.com/SohaibKhaliq/the-delegation"
               target="_blank"
               rel="noopener"
               className="text-zinc-300 hover:text-darkDelegation transition-colors shrink-0"
