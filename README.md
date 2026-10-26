@@ -1,10 +1,13 @@
-<p align="center">
-  <img src="public/images/the-delegation.svg" width="256" alt="The Delegation Logo">
-</p>
+# S.O.N.I.A — Muse Agents
 
-<p align="center">
-  <a href="https://arturitu.github.io/the-delegation/"><b>Launch The Delegation · Full Experience *</b></a>
-</p>
+**A view-only window into real Muse agents.** Live at
+[https://agents.zentacode.com/](https://agents.zentacode.com/).
+Header branding is the owner's (S.O.N.I.A / Muse Agents,
+`v0.2.0-muse`, `@sohaibkhaliq`); this is a fork of upstream
+The Delegation, not the upstream product itself — see
+[History (upstream)](#history-upstream) and [CREDITS.md](CREDITS.md).
+The old upstream logo file (`public/images/the-delegation.svg`) is
+no longer used by the header.
 
 > [!IMPORTANT]
 > **This fork is VIEW-ONLY and does not use Gemini.** There is no API key to
@@ -17,11 +20,21 @@
 
 <br/>
 
-## What is The Delegation?
+## What this fork is
 
-# A no-code 3D playground to explore, design, and interact with Agentic AI systems
+This fork is **not** a simulation playground you run with an API key.
+It is a **view-only dashboard for real Muse work**: the main agent
+S.O.N.I.A and her subagents, their workspaces, and their tasks,
+fed by milestone events published from Muse (see [SETUP.md](SETUP.md)
+for how the bridge is built). There is no Gemini, no simulation run,
+no command channel back to Muse, and no approval flow from this
+dashboard — control stays in Muse chat.
 
-This project is designed for **AI enthusiasts, educators, and creative developers** looking to understand multi-agent collaboration in a living 3D office without writing a single line of code.
+Known limitation, stated plainly: the **3D office scene does not
+currently render on the live site** (central panel blank in every
+live browser check so far). The hierarchy, Kanban, and task views
+below are verified live; the 3D scene is a separate, unresolved
+rendering issue and must not be claimed as working.
 
 ## Branding (owner's header)
 
@@ -80,16 +93,21 @@ What drives the UI instead — `src/muse/`:
    cache-busting timestamp query, `cache: 'no-store'`), accepted only
    if its `"source"` is `"live"`; then `GET /api/muse-state` (live only);
    then `GET /muse-data.json` (the bundled file, copied into `dist/` at
-   build time, labelled from its own source). If none is available, the
-   banner shows "Feed unavailable". Polling every 10s only re-reads
-   the feed. There is no write path to Muse by design. See
-   "Fast bridge" below — Coolify deploy is no longer on the critical
-   path for feed freshness.
-2. **Seed file:** `public/muse-data.json` is explicitly marked
-   `"source": "seed"` with a `sourceLabel` saying it is sample data, not a
-   live feed. Its workspaces/agents/tasks are shaped from real known work
-   (ADE, Legacy CMS, Trevora, ZentaCode; S.O.N.I.A coordinator + builders)
-   but must not be presented as live activity until a live bridge replaces it.
+   build time, labelled from its own source). If none is available,
+   the feed is unavailable. Polling every 10s only re-reads
+   the feed. There is no write path to Muse by design. Note: the
+   view-only Muse data banner component is **hidden by owner request**
+   (kept in `src/muse/MuseViewOnlyBanner.tsx` for easy restore), so
+   feed status is shown through the Muse team and its tasks, not
+   through a banner. See "Fast bridge" below — Coolify deploy is no
+   longer on the critical path for feed freshness.
+2. **Seed file (initial snapshot, superseded):** `public/muse-data.json`
+   started as an explicitly-marked `"source": "seed"` sample. It has
+   since been replaced by a **live** feed (see next point): as of the
+   2026-10-26 feed snapshot, `source` is `"live"`, with 5 workspaces,
+   7 agents (1 main agent + 6 subagents), 8 tasks (7 done, 1 pending),
+   and 9 events. Counts change as new events are published — the live
+   site, not this paragraph, is the current count.
 3. **Live bridge (built, git-based) + fast feed:** see "Live bridge"
    and "Fast bridge" below. A Muse agent publishes milestone events by
    updating `public/muse-data.json` with
@@ -105,15 +123,15 @@ What drives the UI instead — `src/muse/`:
 ```json
 {
   "version": 1,
-  "source": "seed",
-  "sourceLabel": "SEED / SAMPLE DATA — not a live Muse feed yet.",
-  "generatedAt": "2026-10-26T19:19:00+05:00",
+  "source": "live",
+  "sourceLabel": "LIVE — real Muse event feed.",
+  "generatedAt": "2026-10-26T16:07:08Z",
   "note": "View-only snapshot. No agent is started, commanded, or approved from this dashboard.",
   "workspaces": [{ "id": "ade", "name": "ADE", "description": "..." }],
   "agents": [{
     "id": "sonia", "name": "S.O.N.I.A", "role": "coordinator",
-    "workspaceId": "ade", "status": "idle",
-    "currentTask": null, "lastReport": "..."
+    "kind": "main-agent", "workspaceId": "the-delegation",
+    "status": "idle", "currentTask": null, "lastReport": "..."
   }],
   "tasks": [{
     "id": "legacy-stats-restored", "title": "...", "workspaceId": "legacy-cms",
@@ -258,9 +276,11 @@ The publisher workflow above is unchanged (script + commit + push to
 2. **Then:** `GET /api/muse-state` (deployed server feed, live only).
 3. **Then:** `GET /muse-data.json` (bundled file, labelled from its own
    source — seed unless its `source` is `"live"`).
-4. **Otherwise:** "Feed unavailable". The banner shows LIVE only when
-   the accepted feed's source is `"live"`; seed is never mislabelled
-   as live.
+4. **Otherwise:** "Feed unavailable". A feed is treated as LIVE only
+   when its accepted source is `"live"`; seed is never mislabelled
+   as live. (The banner that used to display this is hidden — see
+   above — so LIVE vs seed is visible in the Muse team/tasks, not
+   in a banner.)
 
 **Expected latency, honestly:** push takes ~10s, polling is 10s, so a
 new event should typically appear in **~20–30s**. That is a target,
@@ -271,12 +291,17 @@ falls back to `/api/muse-state` / the bundled file. Coolify deploy is
 no longer on the critical path for feed freshness — it still matters
 for code changes, not for feed data.
 
-**Still no WebSocket, still no token:** this step does not add a POST
-endpoint, a shared secret, or a WebSocket. A true sub-second push
-would need a server write endpoint plus a token both Coolify and Muse
-hold without sharing it in chat — that is a further step, deliberately
-not in this task. No Gemini was reintroduced: no `@google/genai`, no
-`GeminiProvider`, no key, no commands from the dashboard.
+**No WebSocket on `main` yet — branch exists, not live:** `main` has
+no POST endpoint, no shared secret, and no WebSocket. A WebSocket
+version is built on the separate branch `websocket-realtime`
+(`POST /api/muse-events` with Bearer `MUSE_EVENT_TOKEN`, `/ws`
+broadcast, fallback to 10s polling), but it is **not merged and not
+deployed** as of this README update. Until it is merged and a token
+is set in Coolify, no token is needed or accepted, and the git-based
+fast bridge above is the live path. See the WebSocket section of
+[SETUP.md](SETUP.md) for the merge + token steps. No Gemini was
+reintroduced: no `@google/genai`, no `GeminiProvider`, no key, no
+commands from the dashboard.
 
 **Why the design is safe:** the dashboard has no write path at all
 (no POST, no commands), so viewing it can never start, approve, or
@@ -295,12 +320,17 @@ screens entirely is a larger UI refactor and is intentionally left for a
 later cleanup pass, not hidden. Likewise `uiStore.llmConfig` still holds an
 empty default config for type compatibility; nothing reads its `apiKey`.
 
-## Getting Started
+## Getting Started (this fork)
+
+Live site (no install needed to view): <https://agents.zentacode.com/>
+— deployed from `main` via Coolify webhook on every push.
+
+Local run:
 
 1. **Install dependencies:**
 
 ```bash
-npm install
+npm ci
 ```
 
 2. **Run the development server:**
@@ -309,11 +339,27 @@ npm install
 npm run dev
 ```
 
-3. **Open the app:** Navigate to the local URL shown in your terminal (usually `http://localhost:3000/the-delegation`).
+3. **Open the app:** Navigate to the local URL shown in your terminal
+   (usually `http://localhost:3000/` — root, not `/the-delegation`;
+   the upstream `/the-delegation/` base was changed to `/` for this
+   root-domain deployment).
 
-## Features
+Production-style local run: `npm run build`, then `node server.js`
+(serves `dist/` on `PORT`, default 3000; `GET /health` →
+`{"status": "ok"}`).
 
-### Agentic AI System (v0.2.0)
+## Features — upstream only (HISTORY, not the current fork)
+
+> The sections below describe what **upstream** The Delegation
+> advertised. They are kept here as history of where this fork came
+> from. In **this fork** the Gemini simulation, multimodal generation,
+> per-agent LLM assignment, cost/token tracking of LLM calls, and
+> PR-style approvals do **not** run — Gemini was removed (see
+> "Muse-data adapter" above), the dashboard is view-only, and the
+> 3D scene does not currently render on the live site. Do not read
+> the list below as current fork behaviour.
+
+### Agentic AI System (upstream v0.2.0)
 
 - **Team Editor (React Flow):** Create your own [multi-agent design patterns](https://developers.googleblog.com/developers-guide-to-multi-agent-patterns-in-adk/) using an interactive node-based interface.
 - **6 Predefined Teams:** Industry-specific templates (Creative Agency, Film Studio, PR Agency, etc.) to get you started.
@@ -324,32 +370,46 @@ npm run dev
 - **Guardrails:** Controlled generation with the `Auto-approve output` option, ensuring quality before final asset production.
 - **Technical Logs:** Improved visibility into raw LLM traces, tool calls, and structured agent responses.
 
-### Embodied Simulation
+### Embodied Simulation (upstream — not currently working in this fork)
 
-- **Hybrid GPU/CPU Architecture:** A high-performance **3D simulation** built with **Three.js WebGPU** where autonomous LLM-powered characters collaborate in a shared physical workspace.
+- **Hybrid GPU/CPU Architecture (upstream):** A high-performance **3D simulation** built with **Three.js WebGPU** where autonomous LLM-powered characters collaborate in a shared physical workspace. In this fork the scene code is still present, but the live central panel renders blank — see "What this fork is" above.
 - **Intelligent Pathfinding:** NPCs utilize a NavMesh to navigate the office, finding and claiming specific "Points of Interest" (desks, seats, computers) based on their current task. Pathfinding is powered by [three-pathfinding](https://github.com/donmccurdy/three-pathfinding).
 - **Dynamic State Machine:** Characters transition naturally between walking, sitting, working, and talking, with sync'ed 3D speech bubbles and expressions.
 
-### Interactive UI
+### Interactive UI (upstream, as adapted by this fork)
 
-- **Team Flow Visualizer:** Real-time node-based view of your agent hierarchy and task flows.
-- **Simulated PR Reviews:** Interactive modals for reviewing agent proposals, providing feedback, and merging tasks.
-- **Real-time 3D Overlay:** Status indicators and interaction menus projected from 3D space into a polished UI.
-- **Agent Inspector:** Select any agent to view their "thoughts", mission, and history.
-- **Kanban & Action Logs:** Complete transparency into the agency's progress and tool-level interactions.
+- **Team Flow Visualizer:** Node-based view of the Muse agent hierarchy
+  (S.O.N.I.A → subagents) when the Muse team is active — this part
+  is live in this fork.
+- **Simulated PR Reviews (upstream only):** Interactive modals for
+  reviewing agent proposals. The Inspector "REVIEW REQUESTED" brief
+  card was removed from this fork; the Kanban task-review modal for
+  simulation teams was deliberately left, but it is not a Muse
+  approval flow.
+- **Real-time 3D Overlay (upstream only):** Status indicators projected
+  from 3D space — not working in this fork while the 3D scene is blank.
+- **Agent Inspector (adapted):** Select a Muse agent to view its
+  workspace and linked tasks — not LLM "thoughts", which do not exist
+  in this view-only fork.
+- **Kanban & Action Logs:** Kanban shows Muse tasks in this fork;
+  the simulation ActionLog is not fed by Muse events (see hierarchy
+  section above).
 
 ## Tech Stack Deep Dive
 
 - **Engine:** [Three.js](https://threejs.org/) (WebGPU & TSL) for advanced rendering and compute.
 - **UI:** [React](https://react.dev/) & [React Flow](https://reactflow.dev/) for node-based team visualization.
-- **AI:** [Gemini API](https://deepmind.google/technologies/gemini/) is the core LLM provider. We follow official prompting best practices for:
-    - **Images:** [Nano Banana Prompt Guide](https://cloud.google.com/blog/products/ai-machine-learning/ultimate-prompting-guide-for-nano-banana)
-    - **Video:** [Veo 3.1 Prompt Guide](https://cloud.google.com/blog/products/ai-machine-learning/ultimate-prompting-guide-for-veo-3-1)
-    - **Music:** [Lyria 3 Prompt Guide](https://deepmind.google/models/lyria/prompt-guide/)
+- **AI (upstream):** [Gemini API](https://deepmind.google/technologies/gemini/) was the core LLM provider upstream, with prompting guides for images (Nano Banana), video (Veo 3.1), and music (Lyria 3). **This fork has no LLM provider:** `GeminiProvider` was deleted and `@google/genai` was dropped. Dormant model/pricing config files still name Gemini models (see "What is still Gemini-adjacent" above) but make no API call.
 - **State:** [Zustand](https://github.com/pmndrs/zustand) for a unified, reactive store across the 3D world and React UI.
 - **3D Assets:** Custom models and animations rigged in [Blender](https://blender.org), using an instanced animation system.
 
-## Roadmap
+## Roadmap — upstream (HISTORY, not the fork plan)
+
+The fork's next step is not this list — it is merging the
+`websocket-realtime` branch and setting its token (see
+[SETUP.md](SETUP.md)), plus the dormant-Gemini UI cleanup and the
+3D-scene rendering investigation. The list below is upstream's
+roadmap, kept for history:
 
 - **World Building**
     - [ ] **Office/3D Space Editor:** Drag-and-drop workspace layout and POI customization.
@@ -361,11 +421,27 @@ npm run dev
     - [ ] **Inter-Agent Knowledge Sharing:** Long-term memory for agent teams across projects.
 - **Refinement**
     - [ ] **Architecture Decoupling:** Further separation of core logic from the simulation environment.
-    - [ ] **UX/UI Overhaul:** Unified CSS styling based on "The Delegation" brand identity.
+    - [ ] **UX/UI Overhaul (upstream):** Unified CSS styling based on "The Delegation" brand identity. This fork's header branding is S.O.N.I.A / Muse Agents instead.
 
-## Developer Note
+## Developer Note (upstream history)
 
-This release (**v0.2.0**) was developed entirely using **Google Antigravity** as the primary IDE and powered by **Gemini 3 Flash**.
+Upstream release (**v0.2.0**) was developed entirely using
+**Google Antigravity** as the primary IDE and powered by
+**Gemini 3 Flash**. This fork's header version label is
+**`v0.2.0-muse`** (upstream `package.json` version plus a `-muse`
+suffix in the header only).
+
+## History (upstream)
+
+Upstream The Delegation was described as: "A no-code 3D playground
+to explore, design, and interact with Agentic AI systems", designed
+for "AI enthusiasts, educators, and creative developers looking to
+understand multi-agent collaboration in a living 3D office without
+writing a single line of code." That was the original product at
+<https://github.com/arturitu/the-delegation>. This fork keeps its
+code (MIT) and 3D models (CC BY-NC 4.0) under the attribution in
+[CREDITS.md](CREDITS.md), but replaces its Gemini simulation with
+the view-only Muse adapter described at the top of this README.
 
 ## License & IP
 
@@ -374,4 +450,8 @@ This project follows a dual-licensing model:
 - **Source Code (MIT):** All logic, shaders, and UI code are free to use, modify, and distribute.
 - **3D Models & Assets (CC BY-NC 4.0):** The custom 3D office and character models are Copyright © 2026 **Arturo Paracuellos ([unboring.net](https://unboring.net))**. They are free for personal and educational use but _cannot_ be used for commercial purposes without permission.
 
-Developed with ❤️ by [Arturo Paracuellos](https://unboring.net)
+Fork attribution: header branding is the owner's (S.O.N.I.A /
+Muse Agents, `@sohaibkhaliq`, fork
+`SohaibKhaliq/the-delegation`); upstream code/models attribution
+is in [CREDITS.md](CREDITS.md) and `public/models/README.txt`.
+Upstream was developed by Arturo Paracuellos ([unboring.net](https://unboring.net)).
