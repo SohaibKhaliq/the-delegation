@@ -1,7 +1,6 @@
-import { Info, Eye, Maximize2, Settings } from 'lucide-react';
+import { Info, Eye, Maximize2 } from 'lucide-react';
 import React, { useState } from 'react';
 import packageJson from '../../package.json';
-import { useCoreStore } from '../integration/store/coreStore';
 import { useUiStore } from '../integration/store/uiStore';
 import BYOKModal from './BYOKModal';
 import InfoModal from './InfoModal';
@@ -10,7 +9,6 @@ const version = packageJson.version;
 
 const Header: React.FC = () => {
   const { isBYOKOpen, setBYOKOpen } = useUiStore();
-  const { setViewMode } = useCoreStore();
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   const handleFullscreen = () => {
@@ -68,17 +66,9 @@ const Header: React.FC = () => {
       {/* Right: Global Controls */}
       <div className="flex items-center gap-3">
 
-        <button
-          onClick={() => setViewMode('design')}
-          className="flex items-center gap-2 px-3 py-1 bg-darkDelegation hover:bg-darkDelegation text-white rounded-lg transition-all shadow-lg shadow-black/10 active:scale-95 cursor-pointer h-9 shrink-0 ml-1"
-          title="Manage Teams"
-        >
-          <Settings size={14} className="group-hover:rotate-45 transition-transform" />
-          <span className="text-[10px] font-black uppercase tracking-wider ml-1 hidden sm:inline">Manage Teams</span>
-        </button>
-
-        <div className="w-px h-4 bg-zinc-200" />
-
+        {/* MANAGE TEAMS button removed by owner order: the only team is the
+            owner's Muse team, synced from the feed (see src/muse/museSync.ts).
+            No team manager / team switching entry point remains in the header. */}
         <div className="flex items-center gap-2">
           <button
             onClick={handleFullscreen}
