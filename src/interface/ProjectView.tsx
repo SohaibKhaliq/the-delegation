@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 
 import { useCoreStore } from '../integration/store/coreStore';
 import { useSceneManager } from '../simulation/SceneContext';
-import { useMuseStore } from '../muse/museStore';
+import { useMuseStore } from '../muse';
 import {
   MUSE_SPARK_MODEL,
   MUSE_SPARK_INPUT_PER_1M,
@@ -11,7 +11,7 @@ import {
   MUSE_SPARK_CACHED_INPUT_PER_1M,
   museTokenCost,
   sumEventTokens,
-} from '../muse/musePricing';
+} from '../muse';
 import { USER_COLOR } from '../theme/brand';
 import ResetModal from './ResetModal';
 
