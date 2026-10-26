@@ -205,6 +205,39 @@ What drives the UI instead — `src/muse/`:
 - Timestamps are ISO 8601 strings. `filesChanged` lists file names only,
   never file contents or secrets.
 
+### Dynamic Environment v1 (VIEW-ONLY — real Muse agents change the 3D office)
+
+Roadmap Step 1. The 3D office is **not** modified by a simulation
+agent and **not** by a command from the dashboard. A real Muse agent
+places or removes a prop by publishing an `env_changed` feed event
+(Muse → feed → dashboard), and the scene re-syncs props on every
+feed poll. With no props in the feed, the scene is exactly the stock
+office + characters.
+
+- **Schema (`src/muse/museTypes.ts`, feed field `environmentProps`):**
+  each prop has `id`, `workspaceId`, `agentId` (the Muse agent that
+  placed it), `type`, optional `label` (metadata only, not rendered
+  as 3D text), `position: {x, y, z}`, optional `rotationY` (degrees),
+  and `status: "active" | "removed"`. A `removed` entry is kept so a
+  reload does not resurrect the prop. An absent `environmentProps`
+  list means "unknown" (old feed) and does not delete placed props;
+  an explicitly empty list means "no props".
+- **Closed prop types (primitives only):** `desk | chair | plant |
+  screen | board | lamp`. Props are built from Three.js primitives
+  in `src/simulation/world/MuseEnvironment.ts` — no new GLB files,
+  no downloaded models, no AI-generated imagery. Bounds: x/z in
+  `[-8, 8]`, y in `[0, 3]`.
+- **Publisher:** `scripts/publish-muse-event.py --type env_changed`
+  with `--env-prop-id`, `--env-prop-type`, `--env-prop-label`,
+  `--env-x/--env-y/--env-z`, `--env-rotation-y`, `--env-status`.
+  The workspace and agent must already exist in the feed, and
+  positions must stay within bounds (refused otherwise, nothing
+  written). See SETUP.md for the full example.
+- **Limits:** WebGPU only — the scene is confirmed working on the
+  owner's Windows Chrome; headless browsers without WebGPU still
+  show a blank panel, which is a browser limitation, not a scene
+  bug. Props are primitives/simple builds only in v1.
+
 ### Muse hierarchy: main agent + subagents (VIEW-ONLY)
 
 Agents in the feed are Muse's real hierarchy, not generic Delegation
