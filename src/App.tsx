@@ -32,7 +32,7 @@ const App: React.FC = () => {
   // This never sends a command to Muse; see src/muse/museStore.ts.
   useEffect(() => {
     void useMuseStore.getState().loadMuseData();
-    return startMusePolling(30000);
+    return startMusePolling(10000);
   }, []);
 
   const startResizing = useCallback(() => {
