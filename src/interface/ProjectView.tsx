@@ -187,15 +187,19 @@ const ProjectView: React.FC = () => {
         </p>
         {!countsPublished && (
           <p className="text-[10px] font-medium text-zinc-400 leading-relaxed">
-            Token counts come from the Muse feed and are not yet published for real sessions, so totals stay at 0
-            until Muse publishes counts with a milestone event. Counts refresh automatically on every feed poll
+            Token counts come from all Muse chats via the token observer (see README/SETUP) and are not yet
+            published, so totals stay at 0 until the observer runs. Input is per-turn context tokens as recorded
+            in muse.db; the cached breakdown is unknown, so cached is shown as 0. The price is an estimate at
+            Muse Spark 1.3 Standard rates, not a bill. Counts refresh automatically on every feed poll
             {feedSource === 'live' ? ' (live feed)' : ''}.
           </p>
         )}
         {countsPublished && (
           <p className="text-[10px] font-medium text-zinc-400 leading-relaxed">
-            Totals are the sum of token counts published with Muse events in the current feed, refreshed on every
-            feed poll.
+            Totals are the cumulative counts from all Muse chats via the token observer, refreshed on every
+            feed poll. Input is per-turn context tokens as recorded in muse.db; the cached breakdown is
+            unknown, so cached is shown as 0. The price is an estimate at Muse Spark 1.3 Standard rates,
+            not a bill.
           </p>
         )}
       </div>
