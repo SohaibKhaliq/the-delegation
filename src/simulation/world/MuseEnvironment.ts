@@ -20,7 +20,7 @@
 // means "no props": all prop groups are removed and the scene is
 // exactly the stock office + characters.
 import * as THREE from 'three/webgpu';
-import type { MuseEnvProp } from '../../muse/museTypes';
+import type { MuseEnvProp } from '../../muse';
 
 export const MUSE_ENV_BOUNDS = { x: 8, y: 3, z: 8 } as const;
 
