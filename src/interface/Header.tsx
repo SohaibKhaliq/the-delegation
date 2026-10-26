@@ -30,7 +30,7 @@ const Header: React.FC = () => {
           <span className="text-[10px] font-medium text-zinc-400 tracking-wider">Muse Agents</span>
         </div>
 
-        <div className="flex items-center gap-3 self-start mt-3 ml-2 min-w-0">
+        <div className="flex items-center gap-3 self-center ml-3 min-w-0">
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setIsInfoOpen(true)}
