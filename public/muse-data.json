@@ -1,9 +1,10 @@
 {
   "agents": [
     {
-      "currentTask": "muse-event-bridge",
+      "currentTask": null,
       "id": "sonia",
-      "lastReport": "Live Muse event bridge built: bridge script + README ready, Delegation view-only deployed at agents.zentacode.com",
+      "kind": "main-agent",
+      "lastReport": "Main agent / coordinator for all Muse workspaces. Control stays in Muse chat; dashboard is view-only.",
       "name": "S.O.N.I.A",
       "role": "coordinator",
       "status": "idle",
@@ -12,6 +13,7 @@
     {
       "currentTask": "ade-groups-verification",
       "id": "ade-builder",
+      "kind": "subagent",
       "lastReport": "ADE Groups 2-4 stubs were code-complete; live verification was pending at seed time.",
       "name": "ADE Builder",
       "role": "builder",
@@ -21,11 +23,52 @@
     {
       "currentTask": null,
       "id": "legacy-admin",
+      "kind": "subagent",
       "lastReport": "Legacy stats section restored and live-verified on 2026-10-26.",
       "name": "Legacy Admin",
       "role": "builder",
       "status": "idle",
       "workspaceId": "legacy-cms"
+    },
+    {
+      "currentTask": null,
+      "id": "trevora-builder",
+      "kind": "subagent",
+      "lastReport": "No Trevora task in this feed yet. Workspace shown so its subagent role exists when work is reported. No activity claimed.",
+      "name": "Trevora Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "trevora"
+    },
+    {
+      "currentTask": null,
+      "id": "zentacode-builder",
+      "kind": "subagent",
+      "lastReport": "No ZentaCode task in this feed yet. Workspace shown so its subagent role exists when work is reported. No activity claimed.",
+      "name": "ZentaCode Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "zentacode"
+    },
+    {
+      "currentTask": "muse-hierarchy-mapping",
+      "id": "delegation-builder",
+      "kind": "subagent",
+      "lastReport": "Fast bridge deployed and live-verified; banner hide deployed.",
+      "name": "Delegation Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "the-delegation"
+    },
+    {
+      "currentTask": null,
+      "id": "delegation-adapter-builder",
+      "kind": "subagent",
+      "lastReport": "View-only Muse-data adapter built and deployed (Gemini removed, feed adapter, banner).",
+      "name": "Delegation Adapter Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "the-delegation"
     }
   ],
   "events": [
@@ -61,7 +104,7 @@
       "taskId": "muse-event-bridge",
       "timestamp": "2026-10-26T19:19:00+05:00",
       "type": "blocked",
-      "workspaceId": "ade"
+      "workspaceId": "the-delegation"
     },
     {
       "agentId": "sonia",
@@ -72,12 +115,56 @@
       "timestamp": "2026-10-26T15:32:37.537116Z",
       "type": "milestone",
       "workspaceId": "the-delegation"
+    },
+    {
+      "agentId": "delegation-adapter-builder",
+      "filesChanged": [],
+      "id": "evt-delegation-view-only",
+      "report": "View-only adapter deployed at agents.zentacode.com.",
+      "taskId": "delegation-view-only",
+      "timestamp": "2026-10-26T15:29:00Z",
+      "type": "done",
+      "workspaceId": "the-delegation"
+    },
+    {
+      "agentId": "delegation-builder",
+      "filesChanged": [],
+      "id": "evt-delegation-fast-bridge",
+      "report": "Fast bridge deployed fa905c4 and live-verified.",
+      "taskId": "delegation-fast-bridge",
+      "timestamp": "2026-10-26T15:39:49Z",
+      "type": "done",
+      "workspaceId": "the-delegation"
+    },
+    {
+      "agentId": "sonia",
+      "filesChanged": [
+        "src/App.tsx"
+      ],
+      "id": "evt-delegation-banner-hide",
+      "report": "View-only banner hidden per owner request; deployed a759b2d.",
+      "taskId": "delegation-banner-hide",
+      "timestamp": "2026-10-26T15:43:00Z",
+      "type": "done",
+      "workspaceId": "the-delegation"
+    },
+    {
+      "agentId": "delegation-builder",
+      "filesChanged": [
+        "src/muse/museSync.ts"
+      ],
+      "id": "evt-muse-hierarchy-20261026",
+      "report": "Hierarchy mapping in progress: feed restructured to main-agent + subagents, UI sync built; deploy verification pending.",
+      "taskId": "muse-hierarchy-mapping",
+      "timestamp": "2026-10-26T15:50:47.786119Z",
+      "type": "milestone",
+      "workspaceId": "the-delegation"
     }
   ],
-  "generatedAt": "2026-10-26T15:32:37.537133Z",
-  "note": "View-only snapshot. No agent is started, commanded, or approved from this dashboard. Control stays in Muse chat.",
+  "generatedAt": "2026-10-26T15:50:47.786119Z",
+  "note": "View-only snapshot. Main agent S.O.N.I.A coordinates all workspaces; subagents are role-named per workspace. No agent is started, commanded, or approved from this dashboard. Control stays in Muse chat.",
   "source": "live",
-  "sourceLabel": "LIVE — real Muse event feed, updated via the git-based bridge. View-only: control stays in Muse chat.",
+  "sourceLabel": "LIVE \u2014 real Muse event feed, updated via the git-based bridge. View-only: control stays in Muse chat.",
   "tasks": [
     {
       "agentId": "legacy-admin",
@@ -112,13 +199,63 @@
       "workspaceId": "ade"
     },
     {
-      "agentId": "sonia",
-      "filesChanged": [],
+      "agentId": "delegation-builder",
+      "filesChanged": [
+        "scripts/publish-muse-event.py",
+        "README.md"
+      ],
       "id": "muse-event-bridge",
       "report": "Live Muse event bridge built: bridge script + README ready, Delegation view-only deployed at agents.zentacode.com",
       "status": "done",
       "title": "Live Muse event bridge",
-      "workspaceId": "ade"
+      "workspaceId": "the-delegation"
+    },
+    {
+      "agentId": "delegation-adapter-builder",
+      "filesChanged": [
+        "src/muse/museStore.ts",
+        "src/core/agent/AgentBrain.ts"
+      ],
+      "id": "delegation-view-only",
+      "report": "View-only Muse-data adapter built: Gemini removed, feed adapter, banner; deployed at agents.zentacode.com.",
+      "status": "done",
+      "title": "Delegation view-only adapter",
+      "workspaceId": "the-delegation"
+    },
+    {
+      "agentId": "delegation-builder",
+      "filesChanged": [
+        "src/muse/museStore.ts",
+        "src/App.tsx"
+      ],
+      "id": "delegation-fast-bridge",
+      "report": "Fast bridge built: GitHub raw feed first, 10s polling; deployed fa905c4 and live-verified.",
+      "status": "done",
+      "title": "Delegation fast bridge",
+      "workspaceId": "the-delegation"
+    },
+    {
+      "agentId": "sonia",
+      "filesChanged": [
+        "src/App.tsx"
+      ],
+      "id": "delegation-banner-hide",
+      "report": "View-only banner unmounted per owner request; component kept for restore; deployed a759b2d.",
+      "status": "done",
+      "title": "Delegation banner hide",
+      "workspaceId": "the-delegation"
+    },
+    {
+      "agentId": "delegation-builder",
+      "filesChanged": [
+        "src/muse/museSync.ts",
+        "public/muse-data.json"
+      ],
+      "id": "muse-hierarchy-mapping",
+      "report": "Mapping Muse main-agent + subagent hierarchy into Delegation Team Flow, Kanban and Inspector; deploy verification pending. Not claimed as running.",
+      "status": "pending",
+      "title": "Muse hierarchy mapping into Delegation UI",
+      "workspaceId": "the-delegation"
     }
   ],
   "version": 1,
