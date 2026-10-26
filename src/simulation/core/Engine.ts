@@ -22,11 +22,18 @@ export class Engine {
     this.timer = new THREE.Timer();
   }
 
-  public async init() {
+  // 3D visibility + init gating: init() now REPORTS success/failure
+  // instead of only logging to the console. Callers must gate the
+  // animation loop on the return value, so a failed WebGPU init can
+  // never leave a silently blank canvas running a loop that draws
+  // nothing. Returns true only when the WebGPU renderer initialized.
+  public async init(): Promise<boolean> {
     try {
       await this.renderer.init();
+      return true;
     } catch (e) {
       console.error("WebGPU initialization failed:", e);
+      return false;
     }
   }
 
