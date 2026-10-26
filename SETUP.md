@@ -173,7 +173,7 @@ and exposes exactly two API-ish endpoints, both read-only:
 commands, or keys. That is deliberate (see §1): the git push is the
 only write path, and it is authenticated by repo ownership, not by a
 shared secret. The WebSocket POST endpoint exists only on the
-`websocket-realtime` branch — see the WebSocket section.
+`muse-realtime` branch — see the WebSocket section.
 
 ### 2.4 `scripts/publish-muse-event.py` — the publisher
 
@@ -562,7 +562,7 @@ defined entirely by the repo, no manual server steps:
 ## 7. WebSocket bridge (branch only, NOT LIVE)
 
 > **Do not use this section against the live site yet.** Everything
-> here exists only on branch `websocket-realtime`. On `main` there
+> here exists only on branch `muse-realtime`. On `main` there
 > is no POST endpoint, no WebSocket, and no token. The live site
 > falls back to the 10 s GitHub-raw polling in §2.2 until this branch
 > is merged and deployed.
@@ -608,7 +608,7 @@ Token setup (parent/owner step — **no token is invented here**):
 
 Publish via the WebSocket path (only after merge + deploy + token;
 the script `scripts/post-muse-event-ws.py` exists **only on the
-`websocket-realtime` branch**, not on `main` — do not try to run it
+`muse-realtime` branch**, not on `main` — do not try to run it
 from a `main` checkout):
 
 ```bash
@@ -625,7 +625,7 @@ the git publisher does. Metadata only, reports max 500 chars.
 A failed POST here never breaks the feed — the git bridge remains
 the fallback and the durable record.
 
-Merge order: merge `websocket-realtime` into `main` **only after**
+Merge order: merge `muse-realtime` into `main` **only after**
 the work already on `main` has settled, rebase it against the then
 current `main` first (it touches `App.tsx`, so a merge against an
 old `main` will diverge), then deploy via Coolify as usual. The
