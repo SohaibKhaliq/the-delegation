@@ -113,7 +113,14 @@ Field rules:
   never file contents, never secrets).
 - `events[]`: `id`, `timestamp` (ISO 8601), `type`, `workspaceId`,
   `agentId`, optional `taskId`, optional `report`, optional
-  `filesChanged`. Events are capped at the latest 200 by the publisher.
+  `filesChanged`, optional `inputTokens`, `outputTokens`,
+  `cachedInputTokens` (real Muse token counts for that event, if
+  published — see §2.4 and "Token Usage" below). Events are capped
+  at the latest 200 by the publisher.
+- `tokenUsage` (optional, feed-level): `{ inputTokens, outputTokens,
+  cachedInputTokens }` — the publisher's aggregate, the sum of token
+  fields over the events currently in the feed. Absent means no
+  counts have been published yet (the panel shows 0).
 
 Allowed values (from `src/muse/museTypes.ts`):
 
@@ -142,7 +149,11 @@ the whole reason feed events do not need a deploy:
 
 Polling is every **10 s** (`startMusePolling(10000)`, started in
 `src/App.tsx`). Polling only re-reads the feed; it is a display
-refresh, not a command channel. The store never POSTs.
+refresh, not a command channel. The store never POSTs. Project
+Info's token panel subscribes to this store, so its totals
+re-compute on **every** poll (and on WebSocket feed updates after
+the `muse-realtime` branch is merged) — regular updates are poll
+updates, not a separate counter.
 
 On every successful load the store also calls `syncMuseToCore()` in
 `src/muse/museSync.ts`, which converts the feed into one Delegation
@@ -187,7 +198,10 @@ python3 scripts/publish-muse-event.py --help
 Required arguments: `--type`, `--workspace`, `--report`.
 Optional: `--agent`, `--task`, `--task-title`, `--files`,
 `--agent-status`, `--task-status`, `--event-id`, `--feed`
-(default `public/muse-data.json`), `--dry-run`.
+(default `public/muse-data.json`), `--dry-run`, plus token counts:
+`--input-tokens`, `--output-tokens`, `--cached-tokens` (integers,
+default 0, never negative — real Muse counts for this event, never
+a secret, never estimated).
 
 What it does, in order (verified against the script, not assumed):
 
@@ -231,8 +245,10 @@ What it does, in order (verified against the script, not assumed):
    (`evt-<UTC timestamp>-<6 hex chars>`) unless `--event-id` is
    given; `timestamp` is UTC ISO. Events are capped at the latest
    200. Then it sets `source` to `"live"`, sets the live
-   `sourceLabel`, updates `generatedAt`, writes the file, and
-   **re-reads it to prove the written file is valid JSON**.
+   `sourceLabel`, updates `generatedAt`, recomputes feed-level
+   `tokenUsage` as the sum of token fields over the events now in
+   the feed, writes the file, and **re-reads it to prove the
+   written file is valid JSON**.
 
 One sharp edge, straight from the code: **every publish re-homes the
 agent to the event's workspace** (`agent.workspaceId` is overwritten
@@ -495,6 +511,57 @@ broken hierarchy renders as a broken dashboard:
 5. **Milestones only.** One event per real milestone: started,
    milestone, file changed, commit, done, blocked. Not every
    keystroke, not every tool call, not a live log.
+
+### Project Info, token usage, and removed UI (what the dashboard shows)
+
+This section documents the current UI, so a future bridge publisher
+knows what its feed data actually drives. It does not change the
+bridge-first structure above.
+
+- **Project Info shows ACTIVE PROJECTS, names only** — not a user
+  brief. The old "User Brief" section was removed. Active
+  definition: a workspace is active when it has at least one agent
+  AND (at least one non-done task OR at least one event in the
+  feed). Inactive/empty workspaces are omitted. Implementation:
+  `src/interface/ProjectView.tsx`, function `activeProjectNames()`.
+- **Token Usage uses Meta Muse Spark 1.3, Standard tier** (Meta
+  Model API, September 2026; see `src/muse/musePricing.ts`):
+  $1.25/1M input, $4.25/1M output, $0.15/1M cached input. Cost =
+  (input/1M)*1.25 + (output/1M)*4.25 + (cached/1M)*0.15. No Gemini
+  pricing is used in this panel, and the old Gemini pricing modal is
+  no longer opened from Project Info.
+- **Token counts update regularly — and only from published
+  events.** The panel subscribes to the Muse store and re-computes
+  on every 10 s feed poll (and on WebSocket feed updates after the
+  `muse-realtime` branch is merged). To move the numbers, publish
+  counts with a milestone event, e.g.:
+  ```bash
+  python3 scripts/publish-muse-event.py --type milestone \
+    --workspace ade --agent ade-builder --task ade-groups-verification \
+    --report "ADE verification milestone" \
+    --input-tokens 1200 --output-tokens 300 --cached-tokens 0
+  ```
+  Then commit only `public/muse-data.json` and push (see §3 step
+  5). There is **no** fake auto-incrementing counter, **no**
+  estimation from text length, and **no** live Muse token API that
+  the dashboard calls — if no counts are published, the panel
+  honestly shows 0. Feed totals are the sum over the events
+  currently in the feed (max 200), so totals can only fall if old
+  events age out of the cap.
+- **MANAGE TEAMS button removed.** The header no longer has a
+  "MANAGE TEAMS" button (`src/interface/Header.tsx`, code deletion).
+  The only team is the owner's Muse team, auto-selected from the
+  feed by `museSync.ts`; the team editor is no longer reachable
+  from the UI.
+- **LOGS panel removed.** The LOGS panel (ACTIVITY / TECHNICAL
+  tabs, "AWAITING ACTIONS..." empty state) no longer renders in
+  the main view (`src/App.tsx`, code deletion).
+  `src/interface/ActionLogPanel.tsx` remains on disk but is no
+  longer mounted, and no other entry point opens it. Team Flow,
+  Kanban, and Project Info are untouched by this removal.
+- **Branch name is `muse-realtime`**, not `websocket-realtime` —
+  the WebSocket branch was renamed, and all references in this
+  guide use the new name.
 
 ## 5. Secondary: local run
 
