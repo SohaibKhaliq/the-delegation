@@ -13,6 +13,7 @@ import SimulationView from './interface/SimulationView';
 import { SceneContext } from './simulation/SceneContext';
 import { SceneManager } from './simulation/SceneManager';
 import { useMuseStore, startMusePolling } from './muse';
+import { connectMuseSocket } from './muse/museSocket';
 
 
 // Whole-init watchdog (attempt 2): 25s after SceneManager
@@ -38,11 +39,14 @@ const App: React.FC = () => {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // VIEW-ONLY Muse feed: load on mount, refresh by polling the feed only.
+  // VIEW-ONLY Muse feed: load on mount, refresh by polling (10s fallback)
+  // AND by WebSocket (/ws) for near-realtime updates when available.
   // This never sends a command to Muse; see src/muse/museStore.ts.
   useEffect(() => {
     void useMuseStore.getState().loadMuseData();
-    return startMusePolling(10000);
+    const stopPolling = startMusePolling(10000);
+    const disconnectSocket = connectMuseSocket();
+    return () => { stopPolling(); disconnectSocket(); };
   }, []);
 
   useEffect(() => {
