@@ -54,12 +54,13 @@ What drives the UI instead — `src/muse/`:
    live feed. Its workspaces/agents/tasks are shaped from real known work
    (ADE, Legacy CMS, Trevora, ZentaCode; S.O.N.I.A coordinator + builders)
    but must not be presented as live activity until a live bridge replaces it.
-3. **Live bridge (not built yet):** a Muse event bridge publishes a feed in
-   the schema below to `GET /api/muse-state` (server.js serves
-   `dist/muse-data.json` for that route today, so replacing that file's
-   contents with a live feed is enough — no UI rewrite). The bridge posts
-   milestone events only (agent start, milestone, file changed, commit,
-   done, blocked) — never passwords, keys, or private chat content.
+3. **Live bridge (built, git-based):** see "Live bridge" below. A Muse
+   agent publishes milestone events by updating `public/muse-data.json`
+   with `scripts/publish-muse-event.py`, committing that one file, and
+   pushing to `main`. Coolify then builds/deploys it; server.js serves
+   `dist/muse-data.json` for `GET /api/muse-state`, so the dashboard's
+   30s polling then shows `"source": "live"` — no UI rewrite, no POST
+   endpoint, no shared secret.
 
 ### Feed JSON schema (version 1)
 
@@ -94,6 +95,76 @@ What drives the UI instead — `src/muse/`:
 - Event type: `started | milestone | file_changed | commit | done | blocked`.
 - Timestamps are ISO 8601 strings. `filesChanged` lists file names only,
   never file contents or secrets.
+
+### Live bridge (git-based, VIEW-ONLY)
+
+There is deliberately **no POST endpoint and no shared secret** on the
+deployed server. The old dashboard's token endpoint would have created a
+chicken-and-egg problem (a token generated in Coolify that Muse never
+saw). Instead, the bridge is git: the feed file itself is the channel,
+and pushing to `main` is the authentication, because only the repo owner
+can push.
+
+**How a future Muse agent publishes an event:**
+
+```bash
+# From the repo root, after cloning/pulling main:
+python3 scripts/publish-muse-event.py \
+  --type milestone --workspace ade --agent sonia \
+  --task muse-event-bridge --task-status done \
+  --report "Short milestone report" \
+  --files "path/to/file1,path/to/file2"
+
+# Then commit ONLY that file, and push:
+git add public/muse-data.json
+git commit -m "Muse event: <short title>"
+git push origin main
+```
+
+Examples:
+
+```bash
+# Agent starts work
+python3 scripts/publish-muse-event.py --type started \
+  --workspace trevora --agent "Trevora Builder" --agent-status running \
+  --task "Homepage rebuild" --task-title "Homepage rebuild" \
+  --task-status running --report "Homepage rebuild started"
+
+# Work finishes
+python3 scripts/publish-muse-event.py --type done \
+  --workspace trevora --agent "Trevora Builder" --agent-status done \
+  --task "Homepage rebuild" --task-status done \
+  --report "Homepage rebuild deployed and live-verified" \
+  --files "src/pages/Home.tsx"
+
+# Work is blocked
+python3 scripts/publish-muse-event.py --type blocked \
+  --workspace ade --agent sonia --task muse-event-bridge \
+  --task-status blocked --report "Blocked: waiting on owner decision"
+```
+
+**What to publish:** milestone events only — agent started, milestone
+reached, file changed, commit pushed, task done, task blocked. One event
+per real milestone, not every keystroke, not every tool call.
+
+**What NOT to publish:** passwords, API keys, tokens, session values,
+private chat content, full file contents, or anything that looks like a
+secret. The script refuses secret-like arguments (a `key=`/`token=`/
+`password=` assignment, or a long token-like string) and writes nothing
+in that case. Only metadata: ids, names, statuses, file paths, short
+reports. Events are capped at the latest 200.
+
+**Latency, honestly:** this is NOT second-by-second live. The dashboard
+polls every 30s, but a new event only appears after the publisher's
+commit is pushed AND Coolify builds/deploys it — typically 1–2 minutes
+for this app. Until that deploy lands, the dashboard keeps showing the
+previous feed. Never describe this bridge as real-time or instant.
+
+**Why the design is safe:** the dashboard has no write path at all
+(no POST, no commands), so viewing it can never start, approve, or
+change Muse work. Control stays in Muse chat. The feed is public
+sample/live metadata only — if a future event ever needed to stay
+private, it must not be published to this repo at all.
 
 ### What is still Gemini-adjacent (dormant, no calls)
 
