@@ -8,9 +8,7 @@
 // viewer is looking at. It renders nothing for non-Muse teams, for
 // the user character, or when no agent is selected.
 import React from 'react';
-import { useMuseStore } from '../muse/museStore';
-import { deriveSpatialSelection } from '../muse/museSpatial';
-import { MUSE_TEAM_ID } from '../muse/museSync';
+import { useMuseStore, deriveSpatialSelection, MUSE_TEAM_ID } from '../muse';
 import { useTeamStore } from '../integration/store/teamStore';
 import { useUiStore } from '../integration/store/uiStore';
 
