@@ -32,8 +32,9 @@ dashboard — control stays in Muse chat.
 
 Known limitation, stated plainly: the **3D office scene does not
 currently render on the live site** (central panel blank in every
-live browser check so far). The hierarchy, Kanban, and task views
-below are verified live; the 3D scene is a separate, unresolved
+live browser check so far). The hierarchy and task views
+below are verified live (the Kanban board was later hidden by
+owner order; see below); the 3D scene is a separate, unresolved
 rendering issue and must not be claimed as working.
 
 ## Branding (owner's header)
@@ -88,15 +89,24 @@ untouched.
   view (`src/App.tsx`, code deletion, not CSS hiding).
   `src/interface/ActionLogPanel.tsx` remains on disk but is no
   longer mounted; its only `setLogOpen` callers were internal to
-  itself, so no other entry point opens it. Team Flow, Kanban, and
-  Project Info are untouched.
+  itself, so no other entry point opens it. Team Flow and
+  Project Info are untouched (Kanban was removed separately,
+  see below).
+- **KANBAN board hidden:** the Kanban board (SCHEDULED / ON HOLD /
+  IN PROGRESS / DONE columns) no longer renders in the main view
+  (`src/App.tsx`, code deletion, not CSS hiding, including its
+  drawer resize bar). `src/interface/KanbanPanel.tsx` remains on
+  disk but is no longer mounted, and no other entry point (tab,
+  button, menu) opened it. Task data and `museSync` task sync are
+  untouched; tasks remain visible via Team Flow, Project Info
+  (active projects), and the Inspector.
 
 Also removed (owner order, same batch): the Inspector
 "REVIEW REQUESTED / Review the user brief with the team / Chat
 about the brief" card and its task-on-hold "Review Task" variant
 in `src/interface/InspectorPanel.tsx` — a simulation-only
 brief-review flow with no place in a view-only Muse dashboard.
-Team Flow, Kanban, and task-detail views are untouched; the
+Team Flow and task-detail views are untouched; the
 Kanban task-review modal for simulation teams was deliberately
 left alone (it is task detail, not the brief card).
 
@@ -228,9 +238,10 @@ teams, and every task is linked to the agent that did it:
   in each subagent's description) and saved as a custom system, and
   every feed task becomes a core task with id `muse:<taskId>` and
   `assignedAgentId` = that agent's numeric index in the Muse team.
-  That is what drives Team Flow (the Muse hierarchy), Kanban (Muse
-  tasks in Scheduled / On Hold / In Progress / Done columns) and the
-  Inspector (select a Muse agent to see its tasks). The active team is
+  That is what drives Team Flow (the Muse hierarchy) and the
+  Inspector (select a Muse agent to see its tasks). Tasks are
+  still synced into the core store, but the Kanban board that
+  displayed them was hidden by owner order (see below). The active team is
   switched to `muse` only when the stored selection is still the
   factory default; a user who explicitly picks another team is never
   snapped back by polling, and tasks the user created in the editor
@@ -434,10 +445,13 @@ Production-style local run: `npm run build`, then `node server.js`
 - **Agent Inspector (adapted):** Select a Muse agent to view its
   workspace and linked tasks — not LLM "thoughts", which do not exist
   in this view-only fork.
-- **Kanban & Action Logs:** Kanban shows Muse tasks in this fork;
-  the simulation ActionLog is not fed by Muse events (see hierarchy
-  section above), and the LOGS panel itself was removed from the
-  main view (see "Project Info, Token Usage, and LOGS" above).
+- **Kanban & Action Logs:** the Kanban board was hidden by owner
+  order (code deletion in `src/App.tsx`; `KanbanPanel.tsx` remains
+  on disk unmounted, task data untouched, tasks remain visible via
+  Team Flow, Project Info, and Inspector); the simulation ActionLog
+  is not fed by Muse events (see hierarchy section above), and the
+  LOGS panel itself was removed from the main view (see "Project
+  Info, Token Usage, and LOGS" above).
 
 ## Tech Stack Deep Dive
 
