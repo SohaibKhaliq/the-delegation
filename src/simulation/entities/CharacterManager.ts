@@ -306,7 +306,7 @@ export class CharacterManager {
 
       const posElement = this.positionStorage.element(index);
       const velElement = this.velocityStorage.element(index);
-      const agentData = agentStorage.element(index.mul(2));   // Buffer 0: (wpX, anim, wpZ, state)
+      const agentData = agentStorage.element(index.mul(3));   // Buffer 0: (wpX, anim, wpZ, state)
       const agentState = agentData.w;                         // float: 0=IDLE 1=GOTO 2=SEATED
 
       const pos = posElement.xyz.toVar();
@@ -369,7 +369,7 @@ export class CharacterManager {
       const map = (baseMaterial as any).map;
 
       const expressionData = this.expressionBuffer!.storageNode.element(instanceIndex);
-      const animParams = this.agentStateBuffer!.storageNode.element(instanceIndex.mul(2).add(1));
+      const animParams = this.agentStateBuffer!.storageNode.element(instanceIndex.mul(3).add(1));
       const instanceAlpha = animParams.z;
       const accessoryType = attribute('accessoryType', 'float');
 
@@ -454,8 +454,9 @@ export class CharacterManager {
     return Fn(() => {
       const instancePos = this.positionStorage.element(instanceIndex).xyz;
       const rawVel = this.velocityStorage.element(instanceIndex).xyz;
-      const agentData = this.agentStateBuffer!.storageNode.element(instanceIndex.mul(2));
-      const animParams = this.agentStateBuffer!.storageNode.element(instanceIndex.mul(2).add(1));
+      const agentData = this.agentStateBuffer!.storageNode.element(instanceIndex.mul(3));
+      const animParams = this.agentStateBuffer!.storageNode.element(instanceIndex.mul(3).add(1));
+      const blendParams = this.agentStateBuffer!.storageNode.element(instanceIndex.mul(3).add(2));
 
       // 1. Determine local rotation (facing)
       const isMoving = rawVel.length().greaterThan(float(0.01));
@@ -483,37 +484,68 @@ export class CharacterManager {
         const animBuffer = storage(this.bakedAnimationsBuffer, 'mat4', this.bakedAnimationsBuffer.count);
         const metaStorage = storage(this.metaBuffer, 'vec4', this.metaBuffer.count);
 
+        // Enhanced Animations v1 — GPU crossfade between baked clips.
+        // Previously only ONE clip was sampled, so every pose change
+        // snapped instantly to frame 0 of the new clip. Now the shader
+        // also samples the outgoing clip (Buffer 2, written by
+        // AgentStateBuffer.setAnimation on a real clip change) and
+        // mixes the two bone-matrix poses with a smoothstep-eased
+        // weight over blendDuration (default 0.35s). When no blend is
+        // active (blendDuration <= 0.001) the old single-clip path
+        // runs exactly as before — no behaviour change, no cost for
+        // the previous clip. Only already-baked clips are mixed;
+        // no new animation data is involved.
         const animIndex = agentData.y.toUint();
-
-        const meta = metaStorage.element(animIndex);
-        const animOffset = uint(meta.x);
-        const numFrames = uint(meta.y);
-        const duration = float(meta.z);
-
         const startTime = animParams.x;
         const loopMode = animParams.y;
 
-        const animTime = this.uTime.sub(startTime).max(0);
-        const t = loopMode.greaterThan(0.5) ? animTime.div(duration).fract() : animTime.div(duration).clamp(0, 1);
-
-        const currentFrame = t.mul(numFrames.toFloat()).toUint();
-        const safeFrame = currentFrame.min(numFrames.sub(uint(1)));
-
         const skinIndex = attribute('skinIndex');
         const skinWeight = attribute('skinWeight');
-        const skinMat = mat4(0).toVar();
 
-        const addInfluence = (boneIdxNode: any, weightNode: any) => {
-          If(weightNode.greaterThan(0), () => {
-            const address = animOffset.add(safeFrame.mul(uint(this.numBones))).add(boneIdxNode.toUint());
-            skinMat.addAssign(animBuffer.element(address).mul(weightNode));
-          });
+        // Build the skinned pose matrix for one baked clip.
+        const buildSkinMat = (clipIndex: any, clipStart: any, clipLoop: any) => {
+          const meta = metaStorage.element(clipIndex);
+          const animOffset = uint(meta.x);
+          const numFrames = uint(meta.y);
+          const duration = float(meta.z);
+          const animTime = this.uTime.sub(clipStart).max(0);
+          const t = clipLoop.greaterThan(0.5) ? animTime.div(duration).fract() : animTime.div(duration).clamp(0, 1);
+          const currentFrame = t.mul(numFrames.toFloat()).toUint();
+          const safeFrame = currentFrame.min(numFrames.sub(uint(1)));
+          const mat = mat4(0).toVar();
+          const addInfluence = (boneIdxNode: any, weightNode: any) => {
+            If(weightNode.greaterThan(0), () => {
+              const address = animOffset.add(safeFrame.mul(uint(this.numBones))).add(boneIdxNode.toUint());
+              mat.addAssign(animBuffer.element(address).mul(weightNode));
+            });
+          };
+          addInfluence(skinIndex.x, skinWeight.x);
+          addInfluence(skinIndex.y, skinWeight.y);
+          addInfluence(skinIndex.z, skinWeight.z);
+          addInfluence(skinIndex.w, skinWeight.w);
+          return mat;
         };
 
-        addInfluence(skinIndex.x, skinWeight.x);
-        addInfluence(skinIndex.y, skinWeight.y);
-        addInfluence(skinIndex.z, skinWeight.z);
-        addInfluence(skinIndex.w, skinWeight.w);
+        const skinMatCurrent = buildSkinMat(animIndex, startTime, loopMode);
+
+        // Blend weight: 0 = fully previous pose, 1 = fully current pose,
+        // eased with w^2 * (3 - 2w) so the transition starts and ends
+        // gently instead of linearly. Defaults to 1 (no blend).
+        const blendDuration = blendParams.w;
+        const blendStart = animParams.w;
+        const blendWeight = float(1).toVar();
+        If(blendDuration.greaterThan(0.001), () => {
+          const raw = this.uTime.sub(blendStart).div(blendDuration).clamp(0, 1);
+          blendWeight.assign(raw.mul(raw).mul(float(3).sub(raw.mul(2))));
+        });
+
+        const skinMat = mat4(0).toVar();
+        If(blendDuration.greaterThan(0.001).and(blendWeight.lessThan(1)), () => {
+          const skinMatPrev = buildSkinMat(blendParams.x.toUint(), blendParams.y, blendParams.z);
+          skinMat.assign(skinMatPrev.mul(float(1).sub(blendWeight)).add(skinMatCurrent.mul(blendWeight)));
+        }).Else(() => {
+          skinMat.assign(skinMatCurrent);
+        });
 
         finalPosition.assign(skinMat.mul(vec4(positionLocal, 1.0)).xyz);
       }
@@ -621,7 +653,23 @@ export class CharacterManager {
     if (this.agentStateBuffer && index >= 0 && index < this.instanceCount) {
       const meta = this.animationsMeta[name];
       if (meta) {
-        this.agentStateBuffer.setAnimation(index, meta.index, loop, this.currentTime);
+        // Enhanced Animations v1 — per-agent phase offset for looping
+        // idle-family clips. Without this, every agent that returns to
+        // idle (or sits to work / waits in listen) restarts at frame 0
+        // at the same moment and poses in perfect sync, which reads as
+        // robotic. Shifting each agent's clip phase by a deterministic,
+        // index-derived amount (within the clip duration) keeps the
+        // same clip but desynchronises the poses — idle, seated-work
+        // and waiting agents no longer move as one. Walk and one-shot
+        // clips are deliberately unoffset: walk must start with the
+        // movement, and one-shots must start at frame 0.
+        let start = this.currentTime;
+        const isIdleFamily = name === AnimationName.IDLE || name === AnimationName.SIT_IDLE
+          || name === AnimationName.SIT_WORK || name === AnimationName.LISTEN;
+        if (loop && isIdleFamily && meta.duration > 0) {
+          start = this.currentTime - (((index + 1) * 0.73) % meta.duration);
+        }
+        this.agentStateBuffer.setAnimation(index, meta.index, loop, start);
       }
     }
   }
