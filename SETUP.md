@@ -642,6 +642,35 @@ walk time. The existing core-store watcher (task changes ->
 desk/boardroom/spawn) is left untouched; both paths converge
 on the same destinations.
 
+### Enhanced Animations v1 (Roadmap Step 3 — view-only)
+
+Upstream this is richer simulation animation. Here it is only
+smoother movement between the SAME feed-driven poses, using
+the SAME 12 baked clips (`Idle, Walk, Talk, Listen, Sit,
+Sit_Idle, Sit_Work, LookAround, Happy, Sad, Pick, Wave`) — no
+new clips, GLBs, expressions or emotions. Before this step the
+GPU buffer held exactly one clip index per character, so every
+pose change snapped to frame 0 of the new clip. Now
+`src/simulation/behavior/AgentStateBuffer.ts` holds 12 floats
+per instance (was 8): a third vec4 stores the outgoing clip
+(index, start time, loop flag, blend duration) and the old
+unused slot stores the blend start time; the vertex shader in
+`src/simulation/entities/CharacterManager.ts` samples both
+clips and mixes their bone matrices over 0.35 s with a
+smoothstep ease. Same-clip replays never blend, and with no
+blend active the shader runs the old single-clip path exactly.
+Looping idle-family clips (`Idle, Sit_Idle, Sit_Work, Listen`)
+also start with a deterministic per-agent phase offset
+(`(index + 1) * 0.73 s` modulo clip duration), so idle/working/
+waiting agents no longer pose in sync; walk and one-shot clips
+are unoffset. No new idle ticker: idle agents already vary via
+the existing driver (`look_around` / `wave` / `happy`). The
+Embodied AI mapping and Dynamic Environment prop sync are
+untouched. To see it: flip a real agent `running` -> done and
+watch walk -> sit-down -> work -> walk -> spawn idle ease
+instead of snap, on the owner's Chrome only — smoothness
+cannot be verified headlessly.
+
 ## 5. Secondary: local run
 
 This is for developing the dashboard itself, not for publishing
