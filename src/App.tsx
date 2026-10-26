@@ -15,7 +15,6 @@ import SimulationView from './interface/SimulationView';
 import { VisualConfigurator } from './interface/VisualConfigurator/VisualConfigurator';
 import { SceneContext } from './simulation/SceneContext';
 import { SceneManager } from './simulation/SceneManager';
-import MuseViewOnlyBanner from './muse/MuseViewOnlyBanner';
 import { useMuseStore, startMusePolling } from './muse/museStore';
 
 
@@ -86,8 +85,7 @@ const App: React.FC = () => {
         {/* Top: Header */}
         {!isFullscreen && <Header />}
 
-        {/* View-only Muse data banner (display only) */}
-        {!isFullscreen && <MuseViewOnlyBanner />}
+        {/* View-only Muse data banner hidden per owner request (component kept in src/muse/MuseViewOnlyBanner.tsx for easy restore) */}
 
         <div className="flex-1 flex flex-row min-h-0 min-w-0 overflow-hidden">
           {/* Left: Log panel */}
