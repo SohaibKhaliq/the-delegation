@@ -1,14 +1,27 @@
 // Muse-data adapter store (VIEW-ONLY).
 //
-// Load order, deliberately simple so a later live bridge needs no UI rewrite:
-//   1. GET /api/muse-state — served by server.js when a Muse event bridge
-//      feed is present. A feed whose `source` is 'live' wins.
-//   2. Otherwise GET /muse-data.json — the bundled seed/sample file.
-//   3. Otherwise `unavailable` (empty lists, banner explains the state).
+// FAST feed load order (the Coolify deploy is no longer on the critical
+// path for feed freshness — it still matters for code changes, not for
+// feed data):
+//   1. FIRST: the fresh feed file straight from GitHub, with a
+//      cache-busting timestamp query and fetch cache: 'no-store':
+//        https://raw.githubusercontent.com/SohaibKhaliq/the-delegation/main/public/muse-data.json
+//      It is accepted ONLY if it is a valid v1 feed whose `source` is
+//      'live'. A seed file from GitHub is never accepted here as live;
+//      in that case the store falls through to the next sources below,
+//      so seed data can never be mislabelled as live.
+//   2. Otherwise GET /api/muse-state — served by server.js from the
+//      deployed dist/muse-data.json. Accepted only if `source` is 'live'.
+//   3. Otherwise GET /muse-data.json — the bundled file copied into
+//      dist/ at build time. It is shown as 'seed' unless its own
+//      `source` is 'live', in which case it is shown as 'live'.
+//   4. Otherwise `unavailable` (empty lists, banner explains the state).
 //
 // This store never POSTs, never starts an agent, and never calls an LLM.
-// Polling (30s) only re-reads the feed; it is a display refresh, not a
+// Polling (10s) only re-reads the feed; it is a display refresh, not a
 // command channel. The dashboard has no write path to Muse by design.
+// The feed file itself is public metadata only (this is a public repo),
+// so reading it directly from GitHub needs no key and no secret.
 import { create } from 'zustand';
 import type { MuseFeed, MuseFeedSource } from './museTypes';
 
@@ -21,12 +34,18 @@ const EMPTY_FEED: MuseFeed = {
   events: [],
 };
 
-async function tryFetch(url: string): Promise<MuseFeed | null> {
+const RAW_FEED_URL =
+  'https://raw.githubusercontent.com/SohaibKhaliq/the-delegation/main/public/muse-data.json';
+
+async function tryFetch(url: string, noStore = false): Promise<MuseFeed | null> {
   try {
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      ...(noStore ? { cache: 'no-store' as RequestCache } : {}),
+    });
     if (!res.ok) return null;
     const data = (await res.json()) as Partial<MuseFeed>;
-    if (!data || !Array.isArray(data.workspaces) || !Array.isArray(data.agents)) return null;
+    if (!data || data.version !== 1 || !Array.isArray(data.workspaces) || !Array.isArray(data.agents)) return null;
     return {
       ...EMPTY_FEED,
       ...data,
@@ -55,22 +74,35 @@ export const useMuseStore = create<MuseStoreState>()((set, get) => ({
   loadMuseData: async () => {
     if (get().loading) return;
     set({ loading: true });
-    // Live endpoint first; seed file as the documented fallback.
+    // 1. Fresh GitHub file first, cache-busted. Live only — a seed
+    //    file here falls through instead of being shown as live.
+    const raw = await tryFetch(`${RAW_FEED_URL}?t=${Date.now()}`, true);
+    if (raw && raw.source === 'live') {
+      set({ feed: raw, source: 'live', lastUpdated: new Date().toISOString(), loading: false });
+      return;
+    }
+    // 2. Deployed server feed. Live only.
     const live = await tryFetch('/api/muse-state');
     if (live && live.source === 'live') {
       set({ feed: live, source: 'live', lastUpdated: new Date().toISOString(), loading: false });
       return;
     }
-    const seed = await tryFetch('/muse-data.json');
-    if (seed) {
-      set({ feed: seed, source: 'seed', lastUpdated: new Date().toISOString(), loading: false });
+    // 3. Bundled file. Label it from its own source, never upgrade seed to live.
+    const bundled = await tryFetch('/muse-data.json');
+    if (bundled) {
+      set({
+        feed: bundled,
+        source: bundled.source === 'live' ? 'live' : 'seed',
+        lastUpdated: new Date().toISOString(),
+        loading: false,
+      });
       return;
     }
     set({ feed: EMPTY_FEED, source: 'unavailable', loading: false });
   },
 }));
 
-export function startMusePolling(intervalMs = 30000): () => void {
+export function startMusePolling(intervalMs = 10000): () => void {
   const id = window.setInterval(() => {
     void useMuseStore.getState().loadMuseData();
   }, intervalMs);
