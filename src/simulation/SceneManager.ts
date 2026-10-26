@@ -53,6 +53,57 @@ export class SceneManager {
   private container: HTMLElement;
   private resizeObserver: ResizeObserver;
 
+  // 3D visibility + init gating: the failing stage of the last init
+  // attempt, or null on success. A failed init must never leave a
+  // silent grey panel: fatal stages show a message inside the 3D
+  // panel itself (see showInitMessage), and setAnimationLoop is only
+  // reached on a successful init.
+  private initError: string | null = null;
+  private initErrorElement: HTMLElement | null = null;
+
+  public getInitError(): string | null {
+    return this.initError;
+  }
+
+  private showInitMessage(message: string, fatal: boolean): void {
+    if (this.initErrorElement) this.initErrorElement.remove();
+    const el = document.createElement('div');
+    el.setAttribute('data-scene-init-message', fatal ? 'fatal' : 'warning');
+    el.style.position = 'absolute';
+    el.style.inset = '0';
+    el.style.display = 'flex';
+    el.style.alignItems = 'center';
+    el.style.justifyContent = 'center';
+    el.style.padding = '24px';
+    el.style.textAlign = 'center';
+    el.style.fontSize = '14px';
+    el.style.lineHeight = '1.5';
+    el.style.color = fatal ? '#3f3f46' : '#71717a';
+    el.style.background = fatal ? 'rgba(250, 250, 250, 0.95)' : 'transparent';
+    el.style.pointerEvents = 'none';
+    el.style.zIndex = '20';
+    el.textContent = message;
+    this.container.appendChild(el);
+    this.initErrorElement = el;
+  }
+
+  private failInit(stage: string, detail: string): void {
+    this.initError = stage;
+    console.error(`[SceneManager] 3D init failed at stage "${stage}": ${detail}`);
+    this.showInitMessage(
+      `3D unavailable: ${stage} — WebGPU required. Open this site in a WebGPU-capable browser (for example current Chrome on Windows) to see the 3D office.`,
+      true,
+    );
+  }
+
+  private warnCharactersUnavailable(): void {
+    console.warn('[SceneManager] Character load failed; running office-only scene.');
+    this.showInitMessage(
+      '3D characters unavailable — the office is still shown, but agents may not appear. Reload the page to retry.',
+      false,
+    );
+  }
+
   constructor(container: HTMLElement) {
     this.container = container;
     this.engine = new Engine(container);
@@ -116,39 +167,78 @@ export class SceneManager {
   }
 
   private async init() {
-    await this.engine.init();
-    if (this.isDisposed) return;
+    try {
+      // Stage 1 — WebGPU availability. Without navigator.gpu the
+      // renderer can never draw; fail visibly instead of a grey panel.
+      if (typeof navigator !== 'undefined' && !('gpu' in navigator)) {
+        this.failInit('webgpu', 'navigator.gpu is not available in this browser');
+        return;
+      }
 
-    await this.worldManager.load();
-    await this.characterManager.load();
-    if (this.isDisposed) return;
+      // Stage 2 — renderer init. Engine.init() now reports success,
+      // so a failed init gates everything below: no animation loop
+      // is started on a never-drawn canvas.
+      const rendererOk = await this.engine.init();
+      if (this.isDisposed) return;
+      if (!rendererOk) {
+        this.failInit('renderer', 'WebGPU renderer init failed');
+        return;
+      }
 
-    const state = useUiStore.getState();
-    this.characterManager.setInstanceCount(state.instanceCount);
-    this.controller = new CharacterController(this.characterManager, this.navMesh, this.poiManager);
-    this.driverManager = new DriverManager(this.controller);
-    
-    const activeSet = getActiveAgentSet();
-    const playerIndex = activeSet.user.index;
-    this.driverManager.registerPlayer(playerIndex);
+      // Stage 3 — office load. Fatal: without the office there is
+      // nothing to draw. WorldManager.load() logs and rethrows, so
+      // this catch is where the visible error is shown.
+      try {
+        await this.worldManager.load();
+      } catch (err) {
+        console.error('[SceneManager] Office load failed:', err);
+        this.failInit('office', 'office model failed to load');
+        return;
+      }
+      if (this.isDisposed) return;
 
-    getAllAgents(activeSet).forEach((agent) => {
-      if (agent.index !== playerIndex) this.driverManager!.registerNpc(agent.index, agent);
-    });
+      // Stage 4 — character load. INDEPENDENT and non-fatal: a
+      // character failure must not kill the office. CharacterManager
+      // already catches its own errors; here we only check the
+      // result. On failure, controller/driver setup is skipped (the
+      // controller requires a loaded agent-state buffer) and the
+      // animation loop below still renders the office on its own —
+      // animate() already guards every controller access.
+      await this.characterManager.load();
+      const charactersOk = this.characterManager.isLoaded;
+      if (!charactersOk) this.warnCharactersUnavailable();
+      if (this.isDisposed) return;
 
-    new InputManager(
-      this.engine.renderer.domElement, this.stage.camera,
-      () => this.controller!.getCPUPositions(), () => this.controller!.getCount(),
-      (idx) => { if (useUiStore.getState().isChatting) useUiStore.getState().setChatting(false); this.selectedIndex = idx !== activeSet.user.index ? idx : null; useUiStore.getState().setSelectedNpc(this.selectedIndex); },
-      (x, z) => this.driverManager?.getPlayerDriver().onFloorClick(x, z),
-      (idx, pos) => useUiStore.getState().setHoveredNpc(idx, pos),
-      () => this.poiManager.getAllPois(),
-      (id, label, pos) => useUiStore.getState().setHoveredPoi(id, label, pos),
-      (id) => this.driverManager?.getPlayerDriver().onPoiClick(id),
-      this.worldManager.getOffice() ?? undefined, (p) => this.navMesh.isPointOnNavMesh(p)
-    );
+      if (charactersOk) {
+        const state = useUiStore.getState();
+        this.characterManager.setInstanceCount(state.instanceCount);
+        this.controller = new CharacterController(this.characterManager, this.navMesh, this.poiManager);
+        this.driverManager = new DriverManager(this.controller);
 
-    this.engine.renderer.setAnimationLoop(this.animate.bind(this));
+        const activeSet = getActiveAgentSet();
+        const playerIndex = activeSet.user.index;
+        this.driverManager.registerPlayer(playerIndex);
+
+        getAllAgents(activeSet).forEach((agent) => {
+          if (agent.index !== playerIndex) this.driverManager!.registerNpc(agent.index, agent);
+        });
+
+        new InputManager(
+          this.engine.renderer.domElement, this.stage.camera,
+          () => this.controller!.getCPUPositions(), () => this.controller!.getCount(),
+          (idx) => { if (useUiStore.getState().isChatting) useUiStore.getState().setChatting(false); this.selectedIndex = idx !== activeSet.user.index ? idx : null; useUiStore.getState().setSelectedNpc(this.selectedIndex); },
+          (x, z) => this.driverManager?.getPlayerDriver().onFloorClick(x, z),
+          (idx, pos) => useUiStore.getState().setHoveredNpc(idx, pos),
+          () => this.poiManager.getAllPois(),
+          (id, label, pos) => useUiStore.getState().setHoveredPoi(id, label, pos),
+          (id) => this.driverManager?.getPlayerDriver().onPoiClick(id),
+          this.worldManager.getOffice() ?? undefined, (p) => this.navMesh.isPointOnNavMesh(p)
+        );
+      }
+
+      // Reached only on a successful init (office, with or without
+      // characters). This is the single place the loop is started.
+      this.engine.renderer.setAnimationLoop(this.animate.bind(this));
 
     this.unsubs.push(useUiStore.subscribe((s, prev) => {
       if (s.instanceCount !== prev.instanceCount) this.controller?.setInstanceCount(s.instanceCount);
@@ -204,6 +294,13 @@ export class SceneManager {
         });
       }
     }));
+    } catch (err) {
+      // Catch-all for the setup stages above: an unexpected error
+      // during controller/driver setup must also fail visibly and
+      // must not leave a loop running on a half-built scene.
+      console.error('[SceneManager] 3D init failed at stage "setup":', err);
+      this.failInit('setup', 'unexpected error during scene setup');
+    }
   }
 
   private _startChatVisuals(npcIndex: number): void {
@@ -396,5 +493,5 @@ export class SceneManager {
     this.stage.setChatMode(false, false);
   }
 
-  public dispose() { this.isDisposed = true; this.resizeObserver.disconnect(); this.unsubs.forEach(u => u()); this.driverManager?.dispose(); this.engine.dispose(); }
+  public dispose() { this.isDisposed = true; this.resizeObserver.disconnect(); this.unsubs.forEach(u => u()); this.initErrorElement?.remove(); this.initErrorElement = null; this.driverManager?.dispose(); this.engine.dispose(); }
 }
