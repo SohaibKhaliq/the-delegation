@@ -17,7 +17,21 @@ export class WorldManager {
     private poiManager: PoiManager
   ) {}
 
+  // 3D visibility + init gating: an office load failure is logged
+  // with its stage and RETHROWN (never swallowed), so SceneManager
+  // can show a visible in-panel error instead of a silent grey panel.
+  // This failure is independent of character loading: a character
+  // failure must not kill the office, and vice versa.
   public async load(): Promise<void> {
+    try {
+      await this.loadOffice();
+    } catch (err) {
+      console.error('[WorldManager] Office load failed:', err);
+      throw err;
+    }
+  }
+
+  private async loadOffice(): Promise<void> {
     const loader = new GLTFLoader();
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath(DRACO_LIB_PATH);
