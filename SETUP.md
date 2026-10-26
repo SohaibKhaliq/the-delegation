@@ -574,6 +574,54 @@ bridge-first structure above.
   the WebSocket branch was renamed, and all references in this
   guide use the new name.
 
+### Dynamic Environment v1 (Roadmap Step 1 — view-only)
+
+A real Muse agent changes the 3D office **through a feed event**,
+never through a dashboard command and never by a simulation agent
+on its own. Implementation: `src/muse/museTypes.ts`
+(`MuseEnvProp`, feed field `environmentProps`),
+`src/simulation/world/MuseEnvironment.ts` (primitive prop builds),
+`src/simulation/SceneManager.ts` (subscribes to the Muse store and
+re-syncs props on every feed poll, including the 10 s polling
+refresh). With no props, the scene is exactly the stock office +
+characters; an absent `environmentProps` list (old feed) deletes
+nothing, an explicitly empty list removes all props.
+
+Publish a prop (workspace and agent must already exist in the
+feed; type must be `desk | chair | plant | screen | board | lamp`;
+x/z in `[-8, 8]`, y in `[0, 3]`, rotation in `[-180, 180]` degrees;
+label is metadata only, not rendered as 3D text):
+
+```bash
+python3 scripts/publish-muse-event.py --type env_changed \
+  --workspace the-delegation --agent delegation-builder \
+  --report "Placed a plant in the office" \
+  --env-prop-id office-plant-1 --env-prop-type plant \
+  --env-prop-label "Office plant" --env-x 2.5 --env-y 0 --env-z -1.5
+# Then commit only public/muse-data.json and push (see §3 step 5).
+# Remove it later with the same command plus --env-status removed.
+```
+
+What a real (not yet published) prop event looks like in the feed:
+
+```json
+{
+  "id": "office-plant-1", "workspaceId": "the-delegation",
+  "agentId": "delegation-builder", "type": "plant",
+  "label": "Office plant",
+  "position": { "x": 2.5, "y": 0, "z": -1.5 },
+  "rotationY": 0, "status": "active"
+}
+```
+
+Limits: WebGPU only — confirmed working on the owner's Windows
+Chrome; headless browsers without WebGPU still show a blank panel
+(a browser limitation, not a scene bug). Props are primitives/
+simple builds only in v1: no new GLBs, no downloaded models, no
+AI-generated imagery. Test env publishing on a `--feed /tmp/…`
+copy first (`--dry-run` writes nothing); never publish a fake prop
+to the live feed.
+
 ## 5. Secondary: local run
 
 This is for developing the dashboard itself, not for publishing
