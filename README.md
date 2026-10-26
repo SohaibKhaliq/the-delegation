@@ -75,8 +75,7 @@ untouched.
   opened from Project Info), no simulated totals, no invented counts.
 - **Token counts update regularly:** the panel subscribes to the
   Muse store, so totals re-compute on every 10s feed poll (and on
-  WebSocket feed updates after the `muse-realtime` branch is
-  merged). The publisher accepts `--input-tokens`,
+  WebSocket feed updates, merged from `muse-realtime`). The publisher accepts `--input-tokens`,
   `--output-tokens`, `--cached-tokens` (integers, never negative),
   stores them on the event, and aggregates `tokenUsage` as the sum
   over the events currently in the feed (max 200). Counts move only
@@ -136,7 +135,7 @@ left alone (it is task detail, not the brief card).
 For the step-by-step method to build the bridge with Muse — feed
 schema, store loader, publisher script, test event, adding a
 workspace / subagent / task, verification without a deploy, plus
-local run, Coolify deploy, and the branch-only WebSocket path — see
+local run, Coolify deploy, and the merged WebSocket path — see
 [SETUP.md](SETUP.md). That guide is the bridge method; this README
 is the code-level detail behind it.
 
@@ -446,6 +445,39 @@ teams, and every task is linked to the agent that did it:
   `agentId` to the subagent that did the work (or `sonia` only for
   main-agent coordination) and `kind`/`workspaceId` accordingly.
 
+### Architecture Decoupling (VIEW-ONLY — single adapter surface)
+
+Outside code reaches Muse feed data ONLY through `src/muse/index.ts`
+(the barrel). `src/muse/` holds feed loading (`museStore`, 10s
+polling), feed types (`museTypes`), pure derivations
+(`museEmbodied`, `museSpatial`, `musePricing`), and `museSync` —
+the ONLY module that writes feed data into the upstream core
+stores, turning the feed into one team (`muse`) and `muse:` tasks.
+Simulation reads feed-derived data through the barrel and applies
+it to characters/props; interface panels read it through the barrel
+and render it read-only. No outside module imports a deep
+`src/muse/*` path, the feed JSON, or a publisher script. The
+`museSync` import of the core stores IS the adapter, documented as
+shared by design rather than forced apart. No behaviour change was
+made for decoupling alone; the feed schema, token formula,
+200-event cap, and 10s polling are unchanged.
+
+### UX/UI Overhaul (S.O.N.I.A / Muse Agents branding)
+
+Polish only, on the surfaces the owner actually sees: header
+(already S.O.N.I.A / Muse Agents, version/handle cluster aligned
+to the logo baseline), Team Flow (7 Muse VIEW-ONLY), Project Info
+(Active Projects + Token Usage, with the observer-source and
+price-is-an-estimate note intact), and the Inspector's
+"Muse work — view-only" panel (statuses capitalised for
+readability, duplicate border removed; feed data untouched).
+No upstream product branding remains visible in those surfaces;
+attribution stays in `CREDITS.md` and the History section.
+MANAGE TEAMS, LOGS, Kanban, and the REVIEW REQUESTED card stay
+removed (team editor, ActionLog, Kanban panels remain on disk,
+unmounted). No new panels, no simulated chat, no new entry points
+to removed surfaces.
+
 ### Live bridge (git-based, VIEW-ONLY)
 
 There is deliberately **no POST endpoint and no shared secret** on the
@@ -540,21 +572,22 @@ falls back to `/api/muse-state` / the bundled file. Coolify deploy is
 no longer on the critical path for feed freshness — it still matters
 for code changes, not for feed data.
 
-**No WebSocket on `main` yet — branch exists, not live:** `main` has
-no POST endpoint, no shared secret, and no WebSocket. A WebSocket
-version is built on the separate branch `muse-realtime`
-(`POST /api/muse-events` with Bearer `MUSE_EVENT_TOKEN`, `/ws`
-broadcast, fallback to 10s polling), but it is **not merged and not
-deployed** as of this README update. Until it is merged and a token
-is set in Coolify, no token is needed or accepted, and the git-based
-fast bridge above is the live path. See the WebSocket section of
-[SETUP.md](SETUP.md) for the merge + token steps. No Gemini was
-reintroduced: no `@google/genai`, no `GeminiProvider`, no key, no
-commands from the dashboard.
+**WebSocket merged into `main` (token setup is a separate parent step):** `main` now has
+`POST /api/muse-events` with Bearer `MUSE_EVENT_TOKEN` (env only,
+unset → 403, wrong → 401), `/ws` broadcast, and the 10s polling
+fallback — merged from the former `muse-realtime` branch. Until the
+token env is set on the server (a parent step, never in chat/git)
+and the merged code is deployed, POSTs are rejected and the
+git-based fast bridge above remains the live path. See the WebSocket
+section of [SETUP.md](SETUP.md). No Gemini was reintroduced: no
+`@google/genai`, no `GeminiProvider`, no key, no commands from the
+dashboard.
 
 **Why the design is safe:** the dashboard has no write path at all
-(no POST, no commands), so viewing it can never start, approve, or
-change Muse work. Control stays in Muse chat. The feed is public
+(no commands), so viewing it can never start, approve, or
+change Muse work. The single write path is the WebSocket event
+ingest, authenticated by `MUSE_EVENT_TOKEN` and limited to
+milestone metadata. Control stays in Muse chat. The feed is public
 sample/live metadata only — if a future event ever needed to stay
 private, it must not be published to this repo at all.
 
@@ -658,11 +691,12 @@ Production-style local run: `npm run build`, then `node server.js`
 
 ## Roadmap — upstream (HISTORY, not the fork plan)
 
-The fork's next step is not this list — it is merging the
-`muse-realtime` branch and setting its token (see
-[SETUP.md](SETUP.md)), plus the dormant-Gemini UI cleanup and the
-3D-scene rendering investigation. The list below is upstream's
-roadmap, kept for history:
+The fork's roadmap list is complete (Dynamic Environment,
+Advanced Embodied AI, Enhanced Animations, Spatial Interaction,
+Architecture Decoupling, UX/UI Overhaul, WebSocket merge). What
+remains is the dormant-Gemini UI cleanup and the token setup step
+for WebSocket (a parent step, see [SETUP.md](SETUP.md)). The list
+below is upstream's roadmap, kept for history:
 
 - **World Building**
     - [ ] **Office/3D Space Editor:** Drag-and-drop workspace layout and POI customization.
