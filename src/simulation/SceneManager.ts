@@ -175,13 +175,22 @@ export class SceneManager {
         return;
       }
 
-      // Stage 2 — renderer init. Engine.init() now reports success,
-      // so a failed init gates everything below: no animation loop
-      // is started on a never-drawn canvas.
-      const rendererOk = await this.engine.init();
+      // Stage 2 — renderer init. Engine.init() reports 'ok' /
+      // 'failed' / 'timeout', and a failed or timed-out init gates
+      // everything below: no animation loop is started on a
+      // never-drawn canvas. The timeout case is the headless one:
+      // the adapter request never settles, so without the timeout
+      // this await hung forever and failInit() was never reached,
+      // leaving the silent grey panel e930c73 was meant to fix.
+      const rendererResult = await this.engine.init();
       if (this.isDisposed) return;
-      if (!rendererOk) {
-        this.failInit('renderer', 'WebGPU renderer init failed');
+      if (rendererResult !== 'ok') {
+        this.failInit(
+          'renderer',
+          rendererResult === 'timeout'
+            ? 'WebGPU renderer init timed out after 15s (adapter request never settled)'
+            : 'WebGPU renderer init failed',
+        );
         return;
       }
 
