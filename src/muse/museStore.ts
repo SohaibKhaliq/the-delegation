@@ -24,6 +24,7 @@
 // so reading it directly from GitHub needs no key and no secret.
 import { create } from 'zustand';
 import type { MuseFeed, MuseFeedSource } from './museTypes';
+import { syncMuseToCore } from './museSync';
 
 const EMPTY_FEED: MuseFeed = {
   version: 1,
@@ -79,12 +80,15 @@ export const useMuseStore = create<MuseStoreState>()((set, get) => ({
     const raw = await tryFetch(`${RAW_FEED_URL}?t=${Date.now()}`, true);
     if (raw && raw.source === 'live') {
       set({ feed: raw, source: 'live', lastUpdated: new Date().toISOString(), loading: false });
+      // Drive Team Flow / Kanban / Inspector from the same feed (view-only).
+      syncMuseToCore(raw);
       return;
     }
     // 2. Deployed server feed. Live only.
     const live = await tryFetch('/api/muse-state');
     if (live && live.source === 'live') {
       set({ feed: live, source: 'live', lastUpdated: new Date().toISOString(), loading: false });
+      syncMuseToCore(live);
       return;
     }
     // 3. Bundled file. Label it from its own source, never upgrade seed to live.
@@ -96,6 +100,7 @@ export const useMuseStore = create<MuseStoreState>()((set, get) => ({
         lastUpdated: new Date().toISOString(),
         loading: false,
       });
+      syncMuseToCore(bundled);
       return;
     }
     set({ feed: EMPTY_FEED, source: 'unavailable', loading: false });
