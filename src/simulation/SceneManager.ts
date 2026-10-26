@@ -10,11 +10,7 @@ import { NavMeshManager } from './pathfinding/NavMeshManager';
 import { PoiManager } from './world/PoiManager';
 import { WorldManager } from './world/WorldManager';
 import { MuseEnvironment } from './world/MuseEnvironment';
-import { useMuseStore } from '../muse/museStore';
-import { deriveMuseEmbodiedStates, type MuseEmbodiedState } from '../muse/museEmbodied';
-import { deriveSpatialSelection, gatherablePeers } from '../muse/museSpatial';
-import { MUSE_TEAM_ID } from '../muse/museSync';
-import type { MuseFeed } from '../muse/museTypes';
+import { useMuseStore, deriveMuseEmbodiedStates, type MuseEmbodiedState, deriveSpatialSelection, gatherablePeers, MUSE_TEAM_ID, type MuseFeed } from '../muse';
 
 import { AgentSimulation } from './core/AgentSimulation';
 import { useCoreStore } from '../integration/store/coreStore';
