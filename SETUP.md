@@ -622,6 +622,26 @@ AI-generated imagery. Test env publishing on a `--feed /tmp/…`
 copy first (`--dry-run` writes nothing); never publish a fake prop
 to the live feed.
 
+### Advanced Embodied AI v1 (Roadmap Step 2 — view-only)
+
+Upstream this is LLM reasoning driving 3D actions. Here there is
+no LLM, so it is narrower: **real feed status drives character
+behaviour** (`src/muse/museEmbodied.ts` derives it,
+`src/simulation/SceneManager.ts` applies it on every 10 s poll
+and once after scene init). Blocked task/agent status ->
+boardroom + `listen` (waiting) pose; running task/agent status
+-> `sit_work` desk; anything else -> spawn + `idle`. Only
+existing animations/POIs/NavMesh paths; no new GLBs, no fake
+thoughts, no dashboard commands. A state is applied only when
+it changes, only while the Muse team is active, and only after
+characters load. To see it: publish a real milestone event that
+changes an agent/task to `running` (or `blocked`), commit only
+the feed file, push, then on the owner's Chrome watch that
+character walk to a desk (or the boardroom) within ~10 s plus
+walk time. The existing core-store watcher (task changes ->
+desk/boardroom/spawn) is left untouched; both paths converge
+on the same destinations.
+
 ## 5. Secondary: local run
 
 This is for developing the dashboard itself, not for publishing
