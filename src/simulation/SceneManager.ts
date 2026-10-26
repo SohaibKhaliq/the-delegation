@@ -11,6 +11,9 @@ import { PoiManager } from './world/PoiManager';
 import { WorldManager } from './world/WorldManager';
 import { MuseEnvironment } from './world/MuseEnvironment';
 import { useMuseStore } from '../muse/museStore';
+import { deriveMuseEmbodiedStates, type MuseEmbodiedState } from '../muse/museEmbodied';
+import { MUSE_TEAM_ID } from '../muse/museSync';
+import type { MuseFeed } from '../muse/museTypes';
 
 import { AgentSimulation } from './core/AgentSimulation';
 import { useCoreStore } from '../integration/store/coreStore';
@@ -41,6 +44,13 @@ export class SceneManager {
   // dashboard command. Empty/undefined prop lists leave the stock
   // office + characters untouched (see MuseEnvironment.sync).
   private museEnvironment: MuseEnvironment;
+  // Advanced Embodied AI v1 (VIEW-ONLY): last feed-derived embodied
+  // state applied per character index. Only changes act — re-applying
+  // the same state on every 10s poll must never re-walk a character
+  // that is already working/blocked/idle. An entry is recorded ONLY
+  // after a successful application (controller present), so a poll
+  // that arrives before characters load retries on the next poll.
+  private lastMuseEmbodied = new Map<number, MuseEmbodiedState>();
   private driverManager: DriverManager | null = null;
   private simulation: AgentSimulation | null = null;
 
@@ -138,6 +148,7 @@ export class SceneManager {
     this.unsubs.push(
       useMuseStore.subscribe((state) => {
         this.museEnvironment.sync(state.feed.environmentProps);
+        this.applyMuseEmbodiedState(state.feed);
       }),
     );
 
@@ -269,6 +280,11 @@ export class SceneManager {
       // never reaches here, so the App watchdog can detect it.
       this.initSucceeded = true;
       this.onInitialized?.();
+      // Advanced Embodied AI v1: apply the feed state that is
+      // already true at load (a change-only core watcher would
+      // never fire for it); later polls re-apply via the
+      // museStore subscription in the constructor.
+      this.applyMuseEmbodiedState(useMuseStore.getState().feed);
       this.engine.renderer.setAnimationLoop(this.animate.bind(this));
 
     this.unsubs.push(useUiStore.subscribe((s, prev) => {
@@ -408,6 +424,61 @@ export class SceneManager {
    * Attempts to find a work POI. If work-${index} is missing, it picks 
    * a desk from the 'sit_work' group based on the agent's unique index.
    */
+  /**
+   * Advanced Embodied AI v1 (VIEW-ONLY): apply the feed-derived
+   * embodied state for every Muse agent, on every feed poll.
+   *
+   * Guards, in order: disposed -> skip; no controller yet (office
+   * only / characters not loaded) -> skip WITHOUT recording, so a
+   * later poll retries; active team is not the Muse team -> skip
+   * WITHOUT recording, so switching back to Muse re-applies on the
+   * next poll instead of moving another team's characters; state
+   * unchanged since last application -> skip (no re-walk).
+   *
+   * Mapping (existing animations/POIs only):
+   *   working -> setNpcWorking: walk to a sit_work desk, sit_work pose.
+   *   blocked -> boardroom, then 'listen' (waiting/attentive) pose
+   *     on arrival — distinct from idle, and NOT a fake "thinking"
+   *     bubble or any LLM text.
+   *   idle    -> moveNpcToSpawn: return to spawn, idle pose; the
+   *     autonomous driver may then wander as normal idle behaviour.
+   * The driver stays passive while an agent has an in_progress /
+   * on_hold / scheduled core task, so working/blocked agents are
+   * not wandered away; idle agents with only done/no tasks are
+   * left to the driver's normal idle behaviour after returning
+   * to spawn. No LLM call, no dashboard command, no new assets.
+   */
+  public applyMuseEmbodiedState(feed: MuseFeed): void {
+    if (this.isDisposed || !this.controller) return;
+    if (useTeamStore.getState().selectedAgentSetId !== MUSE_TEAM_ID) return;
+    const desired = deriveMuseEmbodiedStates(feed);
+    desired.forEach((state, index) => {
+      if (this.lastMuseEmbodied.get(index) === state) return;
+      if (state === 'working') {
+        this.setNpcWorking(index, true);
+      } else if (state === 'blocked') {
+        this.moveNpcToBoardroomWaiting(index);
+      } else {
+        this.moveNpcToSpawn(index);
+      }
+      this.lastMuseEmbodied.set(index, state);
+    });
+  }
+
+  /** Blocked state: boardroom + 'listen' (waiting) pose on arrival. */
+  public moveNpcToBoardroomWaiting(index: number): void {
+    if (!this.controller) return;
+    const poi = this.poiManager.getPoi('area-boardroom') || this.poiManager.getPoi('boardroom');
+    if (poi) {
+      const walked = this.controller.walkToPoi(index, poi.id, (i) => {
+        if (this.controller && this.controller.getState(i) !== 'walk') this.controller.play(i, 'listen');
+      });
+      if (!walked && this.controller.getState(index) !== 'walk') this.controller.play(index, 'listen');
+    } else if (this.controller.getState(index) !== 'walk') {
+      this.controller.play(index, 'listen');
+    }
+  }
+
   public setNpcWorking(index: number, working: boolean): void {
     if (!this.controller) return;
     if (working) {
