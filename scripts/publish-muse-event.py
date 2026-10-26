@@ -15,6 +15,18 @@ Usage:
         --report "Short milestone report" \
         --input-tokens 1200 --output-tokens 300 --cached-tokens 0
 
+Dynamic Environment (Roadmap Step 1, view-only): a real Muse agent
+places or removes a 3D prop with an env_changed event, e.g.:
+    python3 scripts/publish-muse-event.py --type env_changed \
+        --workspace the-delegation --agent delegation-builder \
+        --report "Placed a plant in the office" \
+        --env-prop-id office-plant-1 --env-prop-type plant \
+        --env-prop-label "Office plant" --env-x 2.5 --env-y 0 --env-z -1.5
+The workspace and agent must already exist in the feed, the prop type
+must be desk/chair/plant/screen/board/lamp, and positions must stay
+within x/z [-8, 8], y [0, 3]. The scene re-syncs props on every feed
+poll; a removed prop keeps its entry with status "removed".
+
 Token counts (optional, integers, never negative): real Muse token
 counts for the session/step this event reports, published WITH the
 event. The dashboard panel re-computes its totals on every feed poll
@@ -53,7 +65,14 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_FEED = REPO_ROOT / "public" / "muse-data.json"
 
-EVENT_TYPES = ("started", "milestone", "file_changed", "commit", "done", "blocked")
+EVENT_TYPES = ("started", "milestone", "file_changed", "commit", "done", "blocked", "env_changed")
+# Dynamic Environment v1: closed prop list, no new GLBs, no AI imagery.
+# Props are primitives built by src/simulation/world/MuseEnvironment.ts.
+PROP_TYPES = ("desk", "chair", "plant", "screen", "board", "lamp")
+# Office-floor bounds in metres (same as MuseEnvironment.ts): x/z in
+# [-8, 8], y in [0, 3]. Rotation is degrees in [-180, 180].
+ENV_BOUNDS = {"x": 8.0, "y": 3.0, "z": 8.0}
+PROP_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 STATUSES = ("idle", "running", "done", "blocked", "pending")
 LIVE_LABEL = "LIVE — real Muse event feed, updated via the git-based bridge. View-only: control stays in Muse chat."
 MAX_EVENTS = 200
@@ -156,6 +175,19 @@ def main(argv=None) -> int:
                         help="New status for the task (optional).")
     parser.add_argument("--event-id", default="",
                         help="Explicit event id (default: generated).")
+    parser.add_argument("--env-prop-id", default="",
+                        help="Dynamic Environment: prop id (lowercase letters/digits/_/-). Requires --type env_changed.")
+    parser.add_argument("--env-prop-type", default="", choices=[""] + list(PROP_TYPES),
+                        help="Dynamic Environment: prop type: desk, chair, plant, screen, board, lamp.")
+    parser.add_argument("--env-prop-label", default="",
+                        help="Dynamic Environment: human label for the prop (metadata only, not rendered as 3D text).")
+    parser.add_argument("--env-x", type=float, default=None, help="Dynamic Environment: prop x in [-8, 8].")
+    parser.add_argument("--env-y", type=float, default=None, help="Dynamic Environment: prop y in [0, 3].")
+    parser.add_argument("--env-z", type=float, default=None, help="Dynamic Environment: prop z in [-8, 8].")
+    parser.add_argument("--env-rotation-y", type=float, default=0.0,
+                        help="Dynamic Environment: prop rotation in degrees in [-180, 180] (default 0).")
+    parser.add_argument("--env-status", default="active", choices=["active", "removed"],
+                        help="Dynamic Environment: active (place/update) or removed (take away).")
     parser.add_argument("--input-tokens", type=int, default=0,
                         help="Real Muse input tokens for this event (default 0, never negative).")
     parser.add_argument("--output-tokens", type=int, default=0,
@@ -188,6 +220,15 @@ def main(argv=None) -> int:
     except ValueError as exc:
         print(f"ERROR: feed validation failed: {exc}", file=sys.stderr)
         return 1
+
+    # Dynamic Environment: an env change must name a workspace/agent
+    # that ALREADY exists in the feed (a prop cannot be placed by an
+    # agent that was just invented by this publish). Capture existence
+    # before the create-if-unknown logic below runs.
+    workspace_pre = find_entry(feed["workspaces"], args.workspace)
+    agent_pre = find_entry(feed["agents"], args.agent) if args.agent else None
+    env_requested = bool(args.env_prop_id or args.env_prop_type or args.env_prop_label
+                         or args.env_x is not None or args.env_y is not None or args.env_z is not None)
 
     # Workspace: match by id/name, else create.
     workspace = find_entry(feed["workspaces"], args.workspace)
@@ -251,6 +292,69 @@ def main(argv=None) -> int:
         if args.files:
             task["filesChanged"] = [f for f in (p.strip() for p in args.files.split(",")) if f]
 
+    # Dynamic Environment: validate the env change (before any write).
+    # Nothing below writes the file, so a refusal here leaves the
+    # live feed untouched even though in-memory entries were created.
+    env_prop = None
+    if env_requested or args.type == "env_changed":
+        if args.type != "env_changed":
+            print("REFUSED: environment arguments require --type env_changed.", file=sys.stderr)
+            return 2
+        if not args.env_prop_id or not args.env_prop_type:
+            print("REFUSED: env change requires --env-prop-id and --env-prop-type.", file=sys.stderr)
+            return 2
+        if not PROP_ID_RE.match(args.env_prop_id):
+            print(f"REFUSED: --env-prop-id must match {PROP_ID_RE.pattern}, got: {args.env_prop_id}", file=sys.stderr)
+            return 2
+        if workspace_pre is None:
+            print(f"REFUSED: env change requires an existing workspace, unknown: {args.workspace}", file=sys.stderr)
+            return 1
+        if agent_pre is None:
+            print(f"REFUSED: env change requires an existing agent, unknown: {args.agent}", file=sys.stderr)
+            return 1
+        if args.env_prop_label:
+            refuse_secret("env-prop-label", args.env_prop_label)
+        existing_props = feed.get("environmentProps") or []
+        existing_prop = next((p for p in existing_props if p.get("id") == args.env_prop_id), None)
+        if args.env_status == "active":
+            if args.env_x is None or args.env_y is None or args.env_z is None:
+                print("REFUSED: active env prop requires --env-x, --env-y and --env-z.", file=sys.stderr)
+                return 2
+        elif existing_prop is None and (args.env_x is None or args.env_y is None or args.env_z is None):
+            print("REFUSED: removing an unknown prop requires --env-x, --env-y and --env-z.", file=sys.stderr)
+            return 2
+        if args.env_x is not None and abs(args.env_x) > ENV_BOUNDS["x"]:
+            print(f"REFUSED: --env-x out of bounds [-8, 8]: {args.env_x}", file=sys.stderr)
+            return 2
+        if args.env_y is not None and not (0 <= args.env_y <= ENV_BOUNDS["y"]):
+            print(f"REFUSED: --env-y out of bounds [0, 3]: {args.env_y}", file=sys.stderr)
+            return 2
+        if args.env_z is not None and abs(args.env_z) > ENV_BOUNDS["z"]:
+            print(f"REFUSED: --env-z out of bounds [-8, 8]: {args.env_z}", file=sys.stderr)
+            return 2
+        if not (-180 <= args.env_rotation_y <= 180):
+            print(f"REFUSED: --env-rotation-y out of bounds [-180, 180]: {args.env_rotation_y}", file=sys.stderr)
+            return 2
+        if existing_prop is not None:
+            pos = existing_prop.get("position", {})
+            position = {
+                "x": args.env_x if args.env_x is not None else pos.get("x", 0),
+                "y": args.env_y if args.env_y is not None else pos.get("y", 0),
+                "z": args.env_z if args.env_z is not None else pos.get("z", 0),
+            }
+        else:
+            position = {"x": args.env_x, "y": args.env_y, "z": args.env_z}
+        env_prop = {
+            "id": args.env_prop_id,
+            "workspaceId": workspace["id"],
+            "agentId": agent["id"] if agent else None,
+            "type": args.env_prop_type,
+            "label": args.env_prop_label or (existing_prop.get("label") if existing_prop else ""),
+            "position": position,
+            "rotationY": args.env_rotation_y,
+            "status": args.env_status,
+        }
+
     files = [f for f in (p.strip() for p in args.files.split(",")) if f] if args.files else []
     event = {
         "id": args.event_id or f"evt-{datetime.now(timezone.utc):%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:6]}",
@@ -264,12 +368,27 @@ def main(argv=None) -> int:
         "inputTokens": args.input_tokens,
         "outputTokens": args.output_tokens,
         "cachedInputTokens": args.cached_tokens,
+        "envProp": env_prop,
     }
+    if env_prop is None:
+        del event["envProp"]
 
     if args.dry_run:
         print(json.dumps(event, indent=2, ensure_ascii=False))
         print("Dry run: nothing written.")
         return 0
+
+    # Dynamic Environment: the feed's environmentProps list is the
+    # CURRENT prop state (the event is history). Update it here, after
+    # the dry-run branch above, so a dry run never writes props either.
+    if env_prop is not None:
+        props = feed.get("environmentProps") or []
+        existing = next((p for p in props if p.get("id") == env_prop["id"]), None)
+        if existing is not None:
+            existing.update(env_prop)
+        else:
+            props.append(env_prop)
+        feed["environmentProps"] = props
 
     feed["events"].append(event)
     feed["events"] = feed["events"][-MAX_EVENTS:]
