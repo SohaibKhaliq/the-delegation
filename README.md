@@ -44,6 +44,15 @@ Team Flow, Kanban, and task-detail views are untouched; the
 Kanban task-review modal for simulation teams was deliberately
 left alone (it is task detail, not the brief card).
 
+## Setup with Muse
+
+For the step-by-step method to build the bridge with Muse — feed
+schema, store loader, publisher script, test event, adding a
+workspace / subagent / task, verification without a deploy, plus
+local run, Coolify deploy, and the branch-only WebSocket path — see
+[SETUP.md](SETUP.md). That guide is the bridge method; this README
+is the code-level detail behind it.
+
 ## Muse-data adapter (VIEW-ONLY — this fork)
 
 Upstream The Delegation runs a Gemini simulation: `AgentBrain` calls
