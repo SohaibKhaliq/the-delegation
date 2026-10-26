@@ -238,6 +238,54 @@ office + characters.
   show a blank panel, which is a browser limitation, not a scene
   bug. Props are primitives/simple builds only in v1.
 
+### Advanced Embodied AI v1 (VIEW-ONLY — real feed status drives 3D characters)
+
+Roadmap Step 2. Upstream "Advanced Embodied AI" is agent reasoning
+driving physical 3D actions via an LLM simulation. This fork has no
+LLM simulation and no dashboard commands, so the adaptation is
+narrower and honest: **the real Muse feed state visibly drives its
+3D character's behaviour**. No reasoning text is invented, no agent
+"thoughts" are shown, no LLM is called, and nothing is sent back to
+Muse. A character's pose/location is a visualisation of its reported
+status, like Team Flow is a visualisation of the same feed.
+
+- **Mapping (derived in `src/muse/museEmbodied.ts`, applied in
+  `src/simulation/SceneManager.ts` on every 10s feed poll and once
+  right after scene init):**
+
+  | Feed state (per agent, first match wins) | Character does |
+  |---|---|
+  | Any task `blocked`, or agent status `blocked` | Walks to the boardroom, then `listen` (waiting/attentive) pose |
+  | Any task `running`, or agent status `running` | Walks to a `sit_work` desk, `sit_work` pose |
+  | Everything else (idle / pending / done, no tasks) | Returns to its spawn POI, `idle` pose |
+
+- **Only existing animations/POIs:** `sit_work` desks, boardroom
+  area, spawn POIs, `idle`/`listen` poses, existing NavMesh paths.
+  No new GLBs, no new animation files, no AI-generated assets.
+  The blocked pose is `listen`, not a fake "thinking" bubble.
+- **No re-walk churn:** a state is applied only when it changes
+  since the last application; re-applying the same state on a poll
+  does nothing. The mapping applies only while the Muse team is
+  the active team, and only after characters load — a poll that
+  arrives earlier retries on the next poll instead of recording
+  a state that was never applied.
+- **What already existed (not duplicated):** the core-store watcher
+  in SceneManager already reacted to core task *changes*
+  (in_progress -> desk, on_hold -> boardroom, justDone -> spawn),
+  and the driver stays passive while an agent has an
+  in_progress/on_hold/scheduled core task. That watcher is left
+  untouched; this feed path adds the agent's own feed status
+  (never synced to the core store before), the state already true
+  at load / on team re-selection, and poll re-application. Both
+  paths converge on the same destinations/poses.
+- **Limits:** WebGPU only (owner's Windows Chrome confirmed);
+  character behaviour cannot be verified headlessly — a blank
+  headless panel is a browser limitation, not a scene bug.
+  With the current live feed (all agents idle, one pending task),
+  every character should show idle/spawn behaviour; a running or
+  blocked change appears within ~10s of its feed push (plus the
+  walk to the desk/boardroom), not instantly.
+
 ### Muse hierarchy: main agent + subagents (VIEW-ONLY)
 
 Agents in the feed are Muse's real hierarchy, not generic Delegation
