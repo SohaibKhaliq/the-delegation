@@ -254,6 +254,59 @@ change Muse work. Control stays in Muse chat. The feed is public
 sample/live metadata only — if a future event ever needed to stay
 private, it must not be published to this repo at all.
 
+### WebSocket realtime (branch `websocket-realtime`, VIEW-ONLY)
+
+This branch adds the near-realtime path on top of the fast bridge —
+it does not remove the fast bridge, which remains the fallback.
+
+**How it works:**
+- `server.js` serves `WS /ws` (WebSocket broadcast, package `ws`) and
+  `POST /api/muse-events`. On connect, the server sends
+  `{type:'state', feed}`; on each accepted POST it broadcasts
+  `{type:'event', event, feed}` to all connected clients within
+  milliseconds. The frontend client `src/muse/museSocket.ts` applies
+  that feed via `applyLiveFeed()` in `museStore.ts` immediately.
+  The 10s GitHub-raw polling keeps running alongside, so if the
+  socket fails or disconnects, the feed still refreshes within ~10s
+  via polling — the socket only accelerates updates, it is never the
+  sole feed source.
+- `GET /api/muse-state` returns the in-memory live feed (seeded from
+  `dist/muse-data.json` at boot, updated by each accepted POST).
+  Server state is in-memory only: a container restart reverts to the
+  bundled feed until the next POST. The git bridge (above) remains
+  the durable record — use it for events that must survive restarts.
+- Expected latency: event POST -> broadcast in **2–5 seconds**
+  (typically well under a second for the broadcast itself, plus
+  network). This is for **milestone events only**. It is NOT a live
+  terminal/thinking stream: Muse does not expose such a stream, and
+  this server never pretends otherwise.
+
+**Token setup (parent/owner step — no token is invented here):**
+1. Choose a long random token. Do NOT put it in chat, in git, or in
+   any file in this repo.
+2. In Coolify, for the Delegation app, set env var `MUSE_EVENT_TOKEN`
+   to that token, then redeploy (this branch's code must be merged
+   and deployed first — the endpoint exists only on this branch).
+3. On the publisher side (the Muse VM), set the SAME value as env
+   var `MUSE_EVENT_TOKEN` through the approved secure channel only.
+   The publisher script reads it from the environment only.
+4. If `MUSE_EVENT_TOKEN` is not set on the server, **all POSTs are
+   rejected (403)** — unauthenticated posts are never accepted.
+   A wrong token is rejected (401). No token is ever logged or
+   printed by the server or by the publisher script.
+
+**Publish via WebSocket path:**
+```bash
+MUSE_EVENT_TOKEN=<from-env-only, never as an argument> \
+  python3 scripts/post-muse-event-ws.py \
+    --url https://agents.zentacode.com \
+    --type milestone --workspace the-delegation --agent sonia \
+    --task muse-event-bridge --report "Short milestone report"
+```
+Metadata only (ids, statuses, file paths, short reports <=500
+chars). Secrets are refused. View-only: the dashboard still sends
+no commands, starts no agents, and calls no LLM.
+
 ### What is still Gemini-adjacent (dormant, no calls)
 
 The dormant model/pricing config files (`src/core/llm/constants.ts`,
