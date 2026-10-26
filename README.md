@@ -293,7 +293,7 @@ for code changes, not for feed data.
 
 **No WebSocket on `main` yet — branch exists, not live:** `main` has
 no POST endpoint, no shared secret, and no WebSocket. A WebSocket
-version is built on the separate branch `websocket-realtime`
+version is built on the separate branch `muse-realtime`
 (`POST /api/muse-events` with Bearer `MUSE_EVENT_TOKEN`, `/ws`
 broadcast, fallback to 10s polling), but it is **not merged and not
 deployed** as of this README update. Until it is merged and a token
@@ -406,7 +406,7 @@ Production-style local run: `npm run build`, then `node server.js`
 ## Roadmap — upstream (HISTORY, not the fork plan)
 
 The fork's next step is not this list — it is merging the
-`websocket-realtime` branch and setting its token (see
+`muse-realtime` branch and setting its token (see
 [SETUP.md](SETUP.md)), plus the dormant-Gemini UI cleanup and the
 3D-scene rendering investigation. The list below is upstream's
 roadmap, kept for history:
