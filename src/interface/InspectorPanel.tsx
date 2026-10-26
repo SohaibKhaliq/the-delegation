@@ -8,6 +8,7 @@ import { useUiStore } from '../integration/store/uiStore';
 import { useSceneManager } from '../simulation/SceneContext';
 import { Avatar } from './components/Avatar';
 import AgentStatusPanel from './AgentStatusPanel';
+import MuseSpatialPanel from './MuseSpatialPanel';
 import ChatPanel from './ChatPanel';
 import ProjectView from './ProjectView';
 
@@ -103,6 +104,11 @@ const InspectorPanel: React.FC<InspectorPanelProps> = ({ isFloating }) => {
               </div>
 
               {/* REVIEW REQUESTED card removed — see note above. */}
+              {/* Spatial Interaction v1 (VIEW-ONLY): real feed data for
+                  the agent selected in 3D. Renders nothing for
+                  non-Muse teams / the user character. The REVIEW
+                  REQUESTED card stays removed; this is not it. */}
+              <MuseSpatialPanel />
                 {/* Chat actions */}
                 <div className="w-full">
                   {agent.index === system.user.index ? (
