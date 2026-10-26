@@ -4,7 +4,7 @@
       "currentTask": null,
       "id": "sonia",
       "kind": "main-agent",
-      "lastReport": "Main agent / coordinator for all Muse workspaces. Control stays in Muse chat; dashboard is view-only.",
+      "lastReport": "All-in-one batch deployed and live-verified: Decoupling + UX Overhaul + WebSocket merged (2ec0f54)",
       "name": "S.O.N.I.A",
       "role": "coordinator",
       "status": "idle",
@@ -180,9 +180,22 @@
       "timestamp": "2026-10-26T18:08:30.019711Z",
       "type": "milestone",
       "workspaceId": "the-delegation"
+    },
+    {
+      "agentId": "sonia",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261026T182700-e0c994",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "All-in-one batch deployed and live-verified: Decoupling + UX Overhaul + WebSocket merged (2ec0f54)",
+      "taskId": null,
+      "timestamp": "2026-10-26T18:27:00.220430Z",
+      "type": "milestone",
+      "workspaceId": "the-delegation"
     }
   ],
-  "generatedAt": "2026-10-26T18:08:30.019758Z",
+  "generatedAt": "2026-10-26T18:27:00.220463Z",
   "note": "View-only snapshot. Main agent S.O.N.I.A coordinates all workspaces; subagents are role-named per workspace. No agent is started, commanded, or approved from this dashboard. Control stays in Muse chat.",
   "source": "live",
   "sourceLabel": "LIVE — real Muse event feed, updated via the git-based bridge. View-only: control stays in Muse chat.",
