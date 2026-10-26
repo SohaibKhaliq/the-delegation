@@ -51,6 +51,12 @@ export interface MuseTask {
   filesChanged?: string[];
 }
 
+export interface MuseTokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens: number;
+}
+
 export interface MuseEvent {
   id: string;
   timestamp: string;
@@ -60,6 +66,14 @@ export interface MuseEvent {
   taskId?: string;
   report?: string;
   filesChanged?: string[];
+  // Real Muse token counts for the session/step this event reports, if
+  // Muse published them with the event. All optional, default 0. These
+  // are NEVER estimated, auto-incremented, or fetched from a Muse token
+  // API (none exists for this dashboard): if no counts were published,
+  // the fields are absent/0 and the panel honestly shows 0.
+  inputTokens?: number;
+  outputTokens?: number;
+  cachedInputTokens?: number;
 }
 
 export interface MuseFeed {
@@ -74,6 +88,10 @@ export interface MuseFeed {
   agents: MuseAgent[];
   tasks: MuseTask[];
   events: MuseEvent[];
+  // Aggregated token totals, recomputed by the publisher as the sum of
+  // token fields on the events currently in the feed (max 200 events).
+  // Optional: absent means no counts have been published yet (panel shows 0).
+  tokenUsage?: MuseTokenUsage;
 }
 
 export type MuseFeedSource = 'live' | 'seed' | 'unavailable';
