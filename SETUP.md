@@ -31,7 +31,7 @@ git add public/muse-data.json && git commit && git push origin main
 https://raw.githubusercontent.com/SohaibKhaliq/the-delegation/main/public/muse-data.json
   │  dashboard polls this every 10s (cache-busted, no-store)
   ▼
-Browser: Team Flow (hierarchy) · Kanban (tasks) · task details
+Browser: Team Flow (hierarchy) · task details (Kanban board hidden, see §4)
 ```
 
 ### What it is NOT
@@ -159,9 +159,10 @@ On every successful load the store also calls `syncMuseToCore()` in
 `src/muse/museSync.ts`, which converts the feed into one Delegation
 team with id `muse` (lead agent = S.O.N.I.A, subagents = all
 subagents) and every feed task into a core task with id
-`muse:<taskId>`. That is what drives Team Flow (the Muse hierarchy),
-Kanban (Muse tasks in Scheduled / On Hold / In Progress / Done) and
-the Inspector (select a Muse agent to see its tasks). The active team
+`muse:<taskId>`. That is what drives Team Flow (the Muse hierarchy) and
+the Inspector (select a Muse agent to see its tasks). Tasks are
+still synced into the core store with id `muse:<taskId>` — only
+the Kanban board that displayed them is hidden (see §4). The active team
 is switched to `muse` only when the stored selection is still the
 factory default; a user who explicitly picks another team is never
 snapped back by polling, and non-`muse:` editor tasks are never
@@ -322,8 +323,8 @@ exactly three pieces, in this order:
    first two sources, bundled file labelled from its own source),
    plus `startMusePolling(intervalMs = 10000)`.
 3. **Core sync** — `src/muse/museSync.ts` + a call to
-   `syncMuseToCore(feed)` after every successful load, so Team Flow,
-   Kanban, and Inspector are driven by the same feed. Start polling
+   `syncMuseToCore(feed)` after every successful load, so Team Flow
+   and Inspector are driven by the same feed. Start polling
    in `src/App.tsx` alongside the rest of the app boot.
 
 If any one of these is missing, the dashboard falls back to its
@@ -402,11 +403,11 @@ Feed events do **not** need a Coolify deploy. Verify in this order:
    — GitHub raw can cache briefly. Do not trigger a deploy to "fix"
    a feed delay; a deploy is not on the feed path.
 2. **Live site:** open `https://agents.zentacode.com/`, wait for the
-   next 10 s poll (or reload), and check the Muse team, Kanban
-   columns, and task status. The view-only data banner is **hidden
+   next 10 s poll (or reload), and check the Muse team and
+   task status. The view-only data banner is **hidden
    by design** (owner order; the component file is kept at
    `src/muse/MuseViewOnlyBanner.tsx` for easy restore), so do not
-   expect a banner — check Team Flow / Kanban / task details instead.
+   expect a banner — check Team Flow / task details instead.
 3. **Health:** `curl https://agents.zentacode.com/health` should
    return `{"status":"ok"}`. This proves the server, not the feed.
 
@@ -557,8 +558,18 @@ bridge-first structure above.
   tabs, "AWAITING ACTIONS..." empty state) no longer renders in
   the main view (`src/App.tsx`, code deletion).
   `src/interface/ActionLogPanel.tsx` remains on disk but is no
-  longer mounted, and no other entry point opens it. Team Flow,
-  Kanban, and Project Info are untouched by this removal.
+  longer mounted, and no other entry point opens it. Team Flow
+  and Project Info are untouched by this removal (Kanban was
+  removed separately, see below).
+- **KANBAN board hidden.** The Kanban board (SCHEDULED / ON HOLD /
+  IN PROGRESS / DONE columns) no longer renders in the main view
+  (`src/App.tsx`, code deletion, not CSS hiding).
+  `src/interface/KanbanPanel.tsx` remains on disk but is no longer
+  mounted, and no other entry point (tab, button, menu) opened it —
+  it was always mounted from `App.tsx`. Task DATA is untouched:
+  `museSync.ts` still syncs every feed task into the core store,
+  and tasks remain visible via Team Flow (Muse hierarchy), Project
+  Info (active projects), and the Inspector (agent-linked tasks).
 - **Branch name is `muse-realtime`**, not `websocket-realtime` —
   the WebSocket branch was renamed, and all references in this
   guide use the new name.
@@ -718,7 +729,7 @@ deployed runtime — do not merge the server change without it.
   caching, network, and container restarts (WebSocket in-memory
   state) can all add delay.
 - **3D scene is a visualisation, not a live camera.** If the central
-  3D pane is blank while Team Flow / Kanban / task details load,
+  3D pane is blank while Team Flow / task details load,
   that is a separate scene-rendering issue — it does not mean the
   bridge is down. Verify the bridge via §3 step 6, not via the 3D
   pane.
@@ -731,7 +742,7 @@ deployed runtime — do not merge the server change without it.
 | Feed unavailable on first load | All three loader sources failed, or the first load raced the poll | Reload and wait one 10 s poll cycle. Check GitHub raw directly (§3 step 6). A first-load flash of empty/seed data before the live file arrives is a loading race, not a broken bridge. |
 | New event not showing after push | GitHub raw caching, or the push did not actually land | Re-check raw with a cache-busting query and confirm the commit on GitHub. Wait, then retry. Do **not** trigger a Coolify deploy for a feed delay — a deploy is not on the feed path. |
 | Push shows no Coolify deployment | Webhook miss (known, happened before) | Check Coolify → Deployments history for the commit. If none exists after ~10 min, push a new (even empty-trigger) commit; the fresh deploy is built from `main` and contains everything. |
-| Banner not visible | By design | The view-only data banner is hidden per owner order (component kept at `src/muse/MuseViewOnlyBanner.tsx` for restore). Check Team Flow / Kanban / task details instead. |
+| Banner not visible | By design | The view-only data banner is hidden per owner order (component kept at `src/muse/MuseViewOnlyBanner.tsx` for restore). Check Team Flow / task details instead. |
 | `REFUSED` / exit 2 from the publisher | Secret-like argument or absolute/`..` file path | Remove the credential-looking text or fix the path to a relative one, then re-run. Nothing was written — the feed is untouched. |
 | `ERROR: unknown task` / exit 1 | Task does not exist and no `--task-title` given | Add `--task-title "Full task title"` to create it (§3 step 7), or use an existing task id/title. |
 | WebSocket POST returns 403 | `MUSE_EVENT_TOKEN` not set on the server | Expected by design until the token is set (see §7). The git bridge + polling still work; the 403 is not a feed outage. |
