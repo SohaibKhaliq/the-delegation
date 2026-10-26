@@ -15,6 +15,8 @@ import SimulationView from './interface/SimulationView';
 import { VisualConfigurator } from './interface/VisualConfigurator/VisualConfigurator';
 import { SceneContext } from './simulation/SceneContext';
 import { SceneManager } from './simulation/SceneManager';
+import MuseViewOnlyBanner from './muse/MuseViewOnlyBanner';
+import { useMuseStore, startMusePolling } from './muse/museStore';
 
 
 const App: React.FC = () => {
@@ -25,6 +27,13 @@ const App: React.FC = () => {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [kanbanHeight, setKanbanHeight] = useState(220);
+
+  // VIEW-ONLY Muse feed: load on mount, refresh by polling the feed only.
+  // This never sends a command to Muse; see src/muse/museStore.ts.
+  useEffect(() => {
+    void useMuseStore.getState().loadMuseData();
+    return startMusePolling(30000);
+  }, []);
 
   const startResizing = useCallback(() => {
     setIsResizing(true);
@@ -76,6 +85,9 @@ const App: React.FC = () => {
       <div className="w-screen h-screen bg-white overflow-hidden flex flex-col">
         {/* Top: Header */}
         {!isFullscreen && <Header />}
+
+        {/* View-only Muse data banner (display only) */}
+        {!isFullscreen && <MuseViewOnlyBanner />}
 
         <div className="flex-1 flex flex-row min-h-0 min-w-0 overflow-hidden">
           {/* Left: Log panel */}
