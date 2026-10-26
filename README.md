@@ -23,6 +23,18 @@
 
 This project is designed for **AI enthusiasts, educators, and creative developers** looking to understand multi-agent collaboration in a living 3D office without writing a single line of code.
 
+## Branding (owner's header)
+
+The visible header branding is the owner's: logo text "S.O.N.I.A /
+Muse Agents", version label `v0.2.0-muse` (upstream `package.json`
+version plus a `-muse` suffix applied in the header only, so the
+lockfile stays in sync), handle `@sohaibkhaliq`, GitHub link to
+`SohaibKhaliq/the-delegation`, and tab title "S.O.N.I.A — Muse
+Agents". The "MANAGE TEAMS" button and all functionality are
+unchanged. Upstream code/model attribution is NOT removed with the
+header handle — see `CREDITS.md` and `public/models/README.txt`
+(MIT code; 3D models CC BY-NC 4.0, Arturo Paracuellos).
+
 ## Muse-data adapter (VIEW-ONLY — this fork)
 
 Upstream The Delegation runs a Gemini simulation: `AgentBrain` calls
