@@ -12,7 +12,32 @@ export type MuseAgentStatus = 'idle' | 'running' | 'done' | 'blocked' | 'pending
 
 export type MuseTaskStatus = 'pending' | 'running' | 'done' | 'blocked';
 
-export type MuseEventType = 'started' | 'milestone' | 'file_changed' | 'commit' | 'done' | 'blocked';
+export type MuseEventType = 'started' | 'milestone' | 'file_changed' | 'commit' | 'done' | 'blocked' | 'env_changed';
+
+// Dynamic Environment v1 (Roadmap Step 1, VIEW-ONLY).
+// Props are placed by REAL Muse agents through feed events only — never
+// by a simulation agent on its own, and never by a command from the
+// dashboard. Types are a closed list of primitives/simple builds only:
+// no new GLB files, no downloaded models, no AI-generated imagery.
+// Positions are office-floor coordinates in metres: x/z within [-8, 8],
+// y (height of the prop group origin, on the floor) within [0, 3].
+// `label` is metadata only in v1 — it is NOT rendered as 3D text.
+// A prop with status 'removed' is not rendered; its entry is kept so a
+// reload does not resurrect it. An absent `environmentProps` list means
+// "unknown" (e.g. an old feed) and must NOT delete already-placed props;
+// an explicitly empty list means "no props".
+export type MuseEnvPropType = 'desk' | 'chair' | 'plant' | 'screen' | 'board' | 'lamp';
+
+export interface MuseEnvProp {
+  id: string;
+  workspaceId: string;
+  agentId: string;
+  type: MuseEnvPropType;
+  label?: string;
+  position: { x: number; y: number; z: number };
+  rotationY?: number;
+  status: 'active' | 'removed';
+}
 
 export interface MuseWorkspace {
   id: string;
@@ -74,6 +99,10 @@ export interface MuseEvent {
   inputTokens?: number;
   outputTokens?: number;
   cachedInputTokens?: number;
+  // Dynamic Environment v1: for an 'env_changed' event, the single prop
+  // this event placed or removed. The full current prop list lives in
+  // MuseFeed.environmentProps; events are history, not the source of truth.
+  envProp?: MuseEnvProp;
 }
 
 export interface MuseFeed {
@@ -92,6 +121,12 @@ export interface MuseFeed {
   // token fields on the events currently in the feed (max 200 events).
   // Optional: absent means no counts have been published yet (panel shows 0).
   tokenUsage?: MuseTokenUsage;
+  // Dynamic Environment v1: the CURRENT environment props, maintained by
+  // the publisher (an env_changed event adds/updates one entry here).
+  // Optional: absent means unknown (old feed) — the scene must keep
+  // already-placed props in that case. An explicitly empty list means
+  // no props, and the scene must be exactly the stock office + characters.
+  environmentProps?: MuseEnvProp[];
 }
 
 export type MuseFeedSource = 'live' | 'seed' | 'unavailable';
