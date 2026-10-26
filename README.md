@@ -338,6 +338,47 @@ sits in `sit_work`; only HOW they move between poses changed.
   Smoothness cannot be verified headlessly — a blank headless
   panel is a browser (WebGPU) limitation, not a scene bug.
 
+### Human-Agent Spatial Interaction v1 (VIEW-ONLY — click to see real Muse work)
+
+Roadmap Step 4. Upstream "Human-Agent Spatial Interaction" is
+direct collaboration and richer multi-party interaction in the 3D
+office, driven by a simulation. This fork has no simulation, so
+the adaptation is narrower: **the viewer's spatial interaction
+with the office is richer and more informative about real Muse
+work** — never a simulated conversation, never a command.
+
+- **Feed-aware 3D selection:** clicking an agent character in the
+  office already selected it and made the camera follow it; now
+  the Inspector also shows that agent's real feed data
+  (`src/muse/museSpatial.ts` + `src/interface/MuseSpatialPanel.tsx`):
+  workspace, role, feed status, current task + its status, last
+  milestone report, and teammates in the same workspace. All of it
+  comes from the feed — metadata only, no private chat, no secrets.
+- **Spatial grouping (selection-triggered, view-only):** when you
+  click a Muse agent, idle subagent peers that share its workspace
+  walk to the nearest free `idle`-arrival (area/spawn) POIs around
+  the clicked agent, using existing NavMesh/POIs and the existing
+  walk -> idle clips with the 0.35s crossfade. Working and blocked
+  peers are never moved (Embodied AI placement wins), the main
+  agent is never gathered around a subagent, and clicking the same
+  agent again does not re-walk peers. Gathering is transient: the
+  idle driver may wander a gathered peer away later, and the next
+  embodied state change for that peer wins.
+- **Read-only, always:** clicking never sends anything to Muse,
+  never changes feed state, never queues a command. It only
+  changes what the viewer is looking at.
+- **Untouched:** Dynamic Environment prop sync, Embodied AI
+  mapping, Enhanced Animations blending, header branding, MANAGE
+  TEAMS removal, LOGS/Kanban hiding, Project Info and token
+  pricing all behave exactly as before. The removed REVIEW
+  REQUESTED card stays removed; the new panel is not it.
+- **To see it (owner's Chrome only):** after deploy, click an
+  agent character in the 3D office — the Inspector should show
+  that agent's workspace, current task and last report, and idle
+  teammates from the same workspace should walk over near it.
+  Clicking/gathering cannot be verified headlessly — a blank
+  headless panel is a browser (WebGPU) limitation, not a scene bug.
+
 ### Muse hierarchy: main agent + subagents (VIEW-ONLY)
 
 Agents in the feed are Muse's real hierarchy, not generic Delegation
