@@ -32,9 +32,38 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (canvasRef.current && !managerRef.current) {
-      const manager = new SceneManager(canvasRef.current);
-      managerRef.current = manager;
-      setSceneManager(manager);
+      // 3D visibility: the SceneManager constructor runs substantial
+      // code BEFORE init() is reached (WebGPURenderer construction,
+      // Stage, AgentSimulation). Any throw there bypassed all of the
+      // init gating, because there was no try/catch here — the panel
+      // stayed silently grey and no overlay was ever created. Guard
+      // construction with the same visible in-panel message so a
+      // constructor failure also fails visibly, not silently.
+      try {
+        const manager = new SceneManager(canvasRef.current);
+        managerRef.current = manager;
+        setSceneManager(manager);
+      } catch (err) {
+        console.error('[App] 3D scene failed to construct:', err);
+        const el = document.createElement('div');
+        el.setAttribute('data-scene-init-message', 'fatal');
+        el.style.position = 'absolute';
+        el.style.inset = '0';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+        el.style.padding = '24px';
+        el.style.textAlign = 'center';
+        el.style.fontSize = '14px';
+        el.style.lineHeight = '1.5';
+        el.style.color = '#3f3f46';
+        el.style.background = 'rgba(250, 250, 250, 0.95)';
+        el.style.pointerEvents = 'none';
+        el.style.zIndex = '20';
+        el.textContent =
+          '3D unavailable: scene — WebGPU required. Open this site in a WebGPU-capable browser (for example current Chrome on Windows) to see the 3D office.';
+        canvasRef.current.appendChild(el);
+      }
     }
 
     return () => {
