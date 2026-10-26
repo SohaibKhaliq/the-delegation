@@ -3,12 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useCoreStore } from './integration/store/coreStore';
 import { FinalOutputModal } from './interface/FinalOutputModal';
 import Header from './interface/Header';
 import InspectorPanel from './interface/InspectorPanel';
-import { KanbanPanel } from './interface/KanbanPanel';
 import { OutputReviewModal } from './interface/OutputReviewModal';
 import SimulationView from './interface/SimulationView';
 import { SceneContext } from './simulation/SceneContext';
@@ -20,10 +19,9 @@ const App: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const managerRef = useRef<SceneManager | null>(null);
   const [sceneManager, setSceneManager] = useState<SceneManager | null>(null);
-  const { isKanbanOpen, setIsResizing, viewMode } = useCoreStore();
+  const { viewMode } = useCoreStore();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [kanbanHeight, setKanbanHeight] = useState(220);
 
   // VIEW-ONLY Muse feed: load on mount, refresh by polling the feed only.
   // This never sends a command to Muse; see src/muse/museStore.ts.
@@ -31,35 +29,6 @@ const App: React.FC = () => {
     void useMuseStore.getState().loadMuseData();
     return startMusePolling(10000);
   }, []);
-
-  const startResizing = useCallback(() => {
-    setIsResizing(true);
-  }, [setIsResizing]);
-
-  const stopResizing = useCallback(() => {
-    setIsResizing(false);
-  }, [setIsResizing]);
-
-  const resize = useCallback((e: MouseEvent) => {
-    if (useCoreStore.getState().isResizing) {
-      const windowHeight = window.innerHeight;
-      const newHeight = windowHeight - e.clientY;
-      const minHeight = windowHeight * 0.2;
-      const maxHeight = windowHeight * 0.5;
-      if (newHeight >= minHeight && newHeight <= maxHeight) {
-        setKanbanHeight(newHeight);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('mousemove', resize);
-    window.addEventListener('mouseup', stopResizing);
-    return () => {
-      window.removeEventListener('mousemove', resize);
-      window.removeEventListener('mouseup', stopResizing);
-    };
-  }, [resize, stopResizing]);
 
   useEffect(() => {
     if (canvasRef.current && !managerRef.current) {
@@ -91,9 +60,10 @@ const App: React.FC = () => {
               state no longer render. ActionLogPanel.tsx remains on disk
               but is no longer mounted anywhere; its only setLogOpen callers
               were internal to that panel itself, so no other entry point
-              opens it. Team Flow, Kanban and Project Info are untouched. */}
+              opens it. Team Flow and Project Info are untouched (Kanban
+              was removed separately, see below). */}
 
-          {/* Center: canvas + kanban drawer stacked */}
+          {/* Center: canvas (Kanban drawer removed — see below) */}
           <div className="relative flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-zinc-50">
 
             {/* Simulation Context - Persistently Mounted */}
@@ -103,17 +73,17 @@ const App: React.FC = () => {
             >
               <SimulationView canvasRef={canvasRef} isFullscreen={isFullscreen} setIsFullscreen={setIsFullscreen} />
 
-              {/* Resize Bar */}
-              {isKanbanOpen && !isFullscreen && (
-                <div
-                  className={`h-2 hover:h-2 bg-transparent hover:bg-zinc-200 border-t border-black/5 transition-colors cursor-row-resize z-30 flex items-center justify-center group shrink-0 ${useCoreStore.getState().isResizing ? 'bg-zinc-300' : ''}`}
-                  onMouseDown={startResizing}
-                >
-                  <div className="w-12 h-1 bg-zinc-300 rounded-full group-hover:bg-zinc-400" />
-                </div>
-              )}
-
-              {isKanbanOpen && !isFullscreen && <KanbanPanel height={kanbanHeight} />}
+              {/* KANBAN board removed by owner order (code deletion, not
+                  CSS hiding): the SCHEDULED / ON HOLD / IN PROGRESS /
+                  DONE columns no longer render, and their drawer
+                  resize bar is gone with them. KanbanPanel.tsx remains
+                  on disk but is no longer mounted anywhere, and no
+                  other entry point (tab, button, menu) opened it —
+                  it was always mounted from here. Task DATA is
+                  untouched: museSync still syncs every feed task
+                  into the core store, and tasks remain visible via
+                  Team Flow (Muse hierarchy), Project Info (active
+                  projects), and the Inspector (agent-linked tasks). */}
             </div>
           </div>
 
