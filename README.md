@@ -43,10 +43,53 @@ Muse Agents", version label `v0.2.0-muse` (upstream `package.json`
 version plus a `-muse` suffix applied in the header only, so the
 lockfile stays in sync), handle `@sohaibkhaliq`, GitHub link to
 `SohaibKhaliq/the-delegation`, and tab title "S.O.N.I.A — Muse
-Agents". The "MANAGE TEAMS" button and all functionality are
-unchanged. Upstream code/model attribution is NOT removed with the
+Agents". Upstream code/model attribution is NOT removed with the
 header handle — see `CREDITS.md` and `public/models/README.txt`
 (MIT code; 3D models CC BY-NC 4.0, Arturo Paracuellos).
+
+Also removed (owner order): the header "MANAGE TEAMS" button
+(`src/interface/Header.tsx`, code deletion, not CSS hiding). The
+only team is the owner's Muse team, auto-selected from the feed by
+`src/muse/museSync.ts`; there is no team manager entry point left in
+the header, and the team editor (`VisualConfigurator`) is no longer
+reachable from the UI. Underlying team data and the Muse sync are
+untouched.
+
+## Project Info, Token Usage, and LOGS (owner UI batch)
+
+- **Project Info — ACTIVE PROJECTS, names only:** the old "User
+  Brief" section is gone. Project Info now lists active project
+  names from the Muse feed only. Active definition: a workspace is
+  active when it has at least one agent AND (at least one non-done
+  task OR at least one event in the feed). No brief text is shown,
+  and inactive/empty workspaces are omitted. With the current feed
+  that lists ADE, Legacy CMS, and the-delegation; Trevora and
+  ZentaCode are omitted until they have a task or an event.
+- **Token Usage — Meta Muse Spark 1.3, Standard tier:** rates are
+  $1.25/1M input, $4.25/1M output, $0.15/1M cached input (Meta Model
+  API, September 2026; see `src/muse/musePricing.ts`). Cost =
+  (input/1M)*1.25 + (output/1M)*4.25 + (cached/1M)*0.15. The panel
+  shows input, output, cached input, and total cost from the feed
+  only — no Gemini price table (the old `PricingModal` is no longer
+  opened from Project Info), no simulated totals, no invented counts.
+- **Token counts update regularly:** the panel subscribes to the
+  Muse store, so totals re-compute on every 10s feed poll (and on
+  WebSocket feed updates after the `muse-realtime` branch is
+  merged). The publisher accepts `--input-tokens`,
+  `--output-tokens`, `--cached-tokens` (integers, never negative),
+  stores them on the event, and aggregates `tokenUsage` as the sum
+  over the events currently in the feed (max 200). Counts move only
+  when Muse publishes them with a milestone event — there is no
+  fake auto-counter, no text-length estimation, and no live Muse
+  token API. Until a count-bearing event is published, the panel
+  honestly shows 0.
+- **LOGS panel removed:** the LOGS panel (ACTIVITY / TECHNICAL tabs,
+  "AWAITING ACTIONS..." empty state) no longer renders in the main
+  view (`src/App.tsx`, code deletion, not CSS hiding).
+  `src/interface/ActionLogPanel.tsx` remains on disk but is no
+  longer mounted; its only `setLogOpen` callers were internal to
+  itself, so no other entry point opens it. Team Flow, Kanban, and
+  Project Info are untouched.
 
 Also removed (owner order, same batch): the Inspector
 "REVIEW REQUESTED / Review the user brief with the team / Chat
@@ -393,7 +436,8 @@ Production-style local run: `npm run build`, then `node server.js`
   in this view-only fork.
 - **Kanban & Action Logs:** Kanban shows Muse tasks in this fork;
   the simulation ActionLog is not fed by Muse events (see hierarchy
-  section above).
+  section above), and the LOGS panel itself was removed from the
+  main view (see "Project Info, Token Usage, and LOGS" above).
 
 ## Tech Stack Deep Dive
 
