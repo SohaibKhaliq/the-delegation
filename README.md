@@ -35,6 +35,15 @@ unchanged. Upstream code/model attribution is NOT removed with the
 header handle — see `CREDITS.md` and `public/models/README.txt`
 (MIT code; 3D models CC BY-NC 4.0, Arturo Paracuellos).
 
+Also removed (owner order, same batch): the Inspector
+"REVIEW REQUESTED / Review the user brief with the team / Chat
+about the brief" card and its task-on-hold "Review Task" variant
+in `src/interface/InspectorPanel.tsx` — a simulation-only
+brief-review flow with no place in a view-only Muse dashboard.
+Team Flow, Kanban, and task-detail views are untouched; the
+Kanban task-review modal for simulation teams was deliberately
+left alone (it is task detail, not the brief card).
+
 ## Muse-data adapter (VIEW-ONLY — this fork)
 
 Upstream The Delegation runs a Gemini simulation: `AgentBrain` calls
