@@ -9,6 +9,8 @@ import { InputManager } from './input/InputManager';
 import { NavMeshManager } from './pathfinding/NavMeshManager';
 import { PoiManager } from './world/PoiManager';
 import { WorldManager } from './world/WorldManager';
+import { MuseEnvironment } from './world/MuseEnvironment';
+import { useMuseStore } from '../muse/museStore';
 
 import { AgentSimulation } from './core/AgentSimulation';
 import { useCoreStore } from '../integration/store/coreStore';
@@ -33,6 +35,12 @@ export class SceneManager {
   private navMesh: NavMeshManager;
   private poiManager: PoiManager;
   private worldManager: WorldManager;
+  // Dynamic Environment v1 (VIEW-ONLY): props placed by real Muse
+  // agents through feed events only. Synced from the Muse feed store
+  // on every feed poll; never driven by a simulation agent or by a
+  // dashboard command. Empty/undefined prop lists leave the stock
+  // office + characters untouched (see MuseEnvironment.sync).
+  private museEnvironment: MuseEnvironment;
   private driverManager: DriverManager | null = null;
   private simulation: AgentSimulation | null = null;
 
@@ -54,6 +62,16 @@ export class SceneManager {
     this.poiManager = new PoiManager();
     this.characterManager.setPoiManager(this.poiManager);
     this.worldManager = new WorldManager(this.stage.scene, this.navMesh, this.poiManager);
+    this.museEnvironment = new MuseEnvironment(this.stage.scene);
+    this.museEnvironment.sync(useMuseStore.getState().feed.environmentProps);
+    // Re-sync props on every feed poll (the store's set() fires on
+    // each load, including the 10s polling refresh). This subscription
+    // is torn down in dispose() via this.unsubs.
+    this.unsubs.push(
+      useMuseStore.subscribe((state) => {
+        this.museEnvironment.sync(state.feed.environmentProps);
+      }),
+    );
 
     this.resizeObserver = new ResizeObserver(() => this.onResize());
     this.resizeObserver.observe(container);
