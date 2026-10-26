@@ -2,8 +2,7 @@
 
 This document is about **one thing first: how to build the bridge between
 Muse and this dashboard**. Local run and Coolify deploy are secondary
-sections at the end. The WebSocket path is a separate branch and is
-**not live yet** — see [WebSocket bridge (branch only, not live)](#7-websocket-bridge-branch-only-not-live).
+sections at the end. The WebSocket path is **merged into `main`** — see [WebSocket bridge (merged, token setup is a separate parent step)](#7-websocket-bridge-merged).
 
 > **Start here, in one sentence:** Muse does the real work in chat.
 > At each milestone, Muse publishes a short metadata event into
@@ -57,11 +56,11 @@ Browser: Team Flow (hierarchy) · task details (Kanban board hidden, see §4)
 |---|---|---|
 | Feed event (git bridge + fast polling) | **~20–30 s** (target, not a guarantee) | Push ~10 s + 10 s polling. `raw.githubusercontent.com` may cache briefly despite cache-busting, so an occasional event takes longer. |
 | Code change (any `src/`, `server.js`, `index.html` change) | **~1–2 min** | Needs a Coolify deploy after the push. Feed data does **not** wait for this. |
-| WebSocket event (branch only, after merge + token) | **2–5 s** | See the WebSocket section. Not available on `main` yet. |
+| WebSocket event (merged code, after deploy + token env) | **2–5 s** | See the WebSocket section. POSTs are rejected (403) until the token env is set — a parent step, never in chat/git. |
 
 ## 2. The building blocks (exact file paths)
 
-Everything below is on `main` unless marked "branch only". All paths
+Everything below is on `main`. All paths
 are relative to the repo root.
 
 ### 2.1 `public/muse-data.json` — the feed (schema v1)
@@ -169,23 +168,25 @@ snapped back by polling, and non-`muse:` editor tasks are never
 touched by the sync. Muse events are **not** copied into the
 simulation ActionLog.
 
-### 2.3 `server.js` — the deployed server's two read endpoints
+### 2.3 `server.js` — the deployed server (read endpoints + WebSocket ingest)
 
-On `main`, `server.js` is a dependency-free Node static server. It
-serves the Vite build output in `./dist` on `PORT` (default `3000`)
-and exposes exactly two API-ish endpoints, both read-only:
+On `main`, `server.js` serves the Vite build output in `./dist` on
+`PORT` (default `3000`) and exposes:
 
 - `GET /health` → `{"status":"ok"}` (container healthcheck).
-- `GET /api/muse-state` → serves the built `dist/muse-data.json`
-  (copied from `public/` at build time). If the file is absent it
-  returns 404 so the UI falls back to `/muse-data.json` or
-  `unavailable`.
+- `GET /api/muse-state` → the in-memory live feed (seeded from
+  `dist/muse-data.json` at boot, updated by accepted POSTs).
+- `POST /api/muse-events` → ONE milestone event (WebSocket path,
+  see §7). Auth: Bearer `MUSE_EVENT_TOKEN` from env only;
+  env unset → 403, wrong/missing → 401. Validates type/
+  workspace/report, report max 500 chars, relative paths only,
+  secret-like strings rejected, events capped at 200.
+- `WS /ws` → on connect sends `{type:'state', feed}`; on each
+  accepted POST broadcasts `{type:'event', event, feed}`.
 
-**There is no POST endpoint on `main`.** No endpoint accepts events,
-commands, or keys. That is deliberate (see §1): the git push is the
-only write path, and it is authenticated by repo ownership, not by a
-shared secret. The WebSocket POST endpoint exists only on the
-`muse-realtime` branch — see the WebSocket section.
+There is still NO command path: the POST accepts milestone
+metadata only, never a command. The git push remains the durable
+write path (see §7 for the in-memory limitation).
 
 ### 2.4 `scripts/publish-muse-event.py` — the publisher
 
@@ -533,8 +534,8 @@ bridge-first structure above.
   no longer opened from Project Info.
 - **Token counts update regularly — and only from published
   events.** The panel subscribes to the Muse store and re-computes
-  on every 10 s feed poll (and on WebSocket feed updates after the
-  `muse-realtime` branch is merged). To move the numbers, publish
+  on every 10 s feed poll (and on WebSocket feed updates, merged
+  from `muse-realtime`). To move the numbers, publish
   counts with a milestone event, e.g.:
   ```bash
   python3 scripts/publish-muse-event.py --type milestone \
@@ -603,9 +604,9 @@ bridge-first structure above.
   `museSync.ts` still syncs every feed task into the core store,
   and tasks remain visible via Team Flow (Muse hierarchy), Project
   Info (active projects), and the Inspector (agent-linked tasks).
-- **Branch name is `muse-realtime`**, not `websocket-realtime` —
-  the WebSocket branch was renamed, and all references in this
-  guide use the new name.
+- **Former branch name is `muse-realtime`** (renamed from
+  `websocket-realtime`, then merged into `main`) — the branch no
+  longer needs to exist for the WebSocket path to work.
 
 ### Dynamic Environment v1 (Roadmap Step 1 — view-only)
 
@@ -730,6 +731,34 @@ owner's Chrome and check the Inspector panel plus idle
 teammates walking over nearby — clicking/gathering cannot be
 verified headlessly.
 
+### Architecture Decoupling (all-in-one batch — no behaviour change)
+
+Outside code reaches Muse feed data ONLY through
+`src/muse/index.ts`. `src/muse/` holds the loader (`museStore`,
+10s polling, GitHub-raw → `/api/muse-state` → bundled fallback),
+feed types, pure derivations (embodied, spatial, pricing), and
+`museSync` — the only writer of feed data into the core stores.
+Simulation and interface code import from the barrel, never a
+deep `src/muse/*` path, never the feed JSON, never a publisher
+script. `museSync`'s import of the core stores IS the adapter and
+is documented as shared by design. Feed schema v1, token formula,
+200-event cap, and 10s polling are unchanged by decoupling.
+
+### UX/UI Overhaul (S.O.N.I.A / Muse Agents branding)
+
+Polish only, on owner-visible surfaces: header version/handle
+cluster aligned to the logo baseline; Inspector "Muse work —
+view-only" panel statuses capitalised and duplicate border
+removed (feed data untouched). No upstream product branding
+remains visible in header, Team Flow, Project Info, or Inspector;
+attribution stays in `CREDITS.md`/README History. MANAGE TEAMS,
+LOGS, Kanban, and REVIEW REQUESTED stay removed; the team editor,
+ActionLog, and Kanban panels remain on disk, unmounted. No new
+panels, no simulated chat, no new entry points to removed
+surfaces. The view-only eye badge and the token note (observer
+source, per-turn context input, cached unknown = 0, price is an
+estimate not a bill) are intact.
+
 ## 5. Secondary: local run
 
 This is for developing the dashboard itself, not for publishing
@@ -777,8 +806,8 @@ defined entirely by the repo, no manual server steps:
   version.** `server.js` reads only `PORT`. Do **not** set a
   `GEMINI_API_KEY` build variable: the upstream Dockerfile comment
   warns that Vite would embed it in the served client JavaScript.
-  (The WebSocket token in §7 is the only future env var, and it
-  lives on its branch, not on `main`.)
+  (The WebSocket token in §7 is the only env var besides `PORT`:
+  `MUSE_EVENT_TOKEN`, set as a parent step, never in chat/git.)
 - **Deploy trigger:** push to `main` → Coolify webhook auto-deploy.
   No manual deploy is needed when one is already in progress for the
   pushed commit; triggering a duplicate only queues a second deploy.
@@ -793,15 +822,15 @@ defined entirely by the repo, no manual server steps:
   deployment built from `main`, which then contains everything —
   that is the recovery, not a manual rebuild of the old commit.
 
-## 7. WebSocket bridge (branch only, NOT LIVE)
+## 7. WebSocket bridge (MERGED)
 
-> **Do not use this section against the live site yet.** Everything
-> here exists only on branch `muse-realtime`. On `main` there
-> is no POST endpoint, no WebSocket, and no token. The live site
-> falls back to the 10 s GitHub-raw polling in §2.2 until this branch
-> is merged and deployed.
+> **Merged into `main` from the former `muse-realtime` branch.**
+> The endpoints below exist in the merged code. Until the merged
+> code is deployed AND the token env is set (a separate parent
+> step), POSTs are rejected and the live site falls back to the
+> 10 s GitHub-raw polling in §2.2 — which is not an outage.
 
-How it works (on that branch):
+How it works (on `main` now):
 
 - `server.js` serves `WS /ws` (WebSocket broadcast, package `ws`)
   and `POST /api/muse-events`. On connect, the server sends
@@ -824,14 +853,13 @@ How it works (on that branch):
   network). Still milestone events only — not a live terminal or
   thinking stream.
 
-Token setup (parent/owner step — **no token is invented here**):
+Token setup (a separate PARENT step — **no token is invented here, and no token value appears in this repo**):
 
-1. Choose a long random token. Do **not** put it in chat, in git,
-   or in any file in this repo.
+1. The parent generates a long random token and stores it only
+   through the approved secure channel. Do **not** put it in chat,
+   in git, or in any file in this repo.
 2. In Coolify, for the Delegation app, set env var
-   `MUSE_EVENT_TOKEN` to that token, then redeploy — and only after
-   this branch is merged to `main`, because the endpoint exists
-   only on this branch.
+   `MUSE_EVENT_TOKEN` to that token, then deploy the merged code.
 3. On the publisher side (the Muse VM), set the **same** value as
    env var `MUSE_EVENT_TOKEN` through the approved secure channel
    only. The publisher script reads it from the environment only.
@@ -840,10 +868,9 @@ Token setup (parent/owner step — **no token is invented here**):
    wrong token is rejected (401). No token is ever logged or printed
    by the server or by the publisher script.
 
-Publish via the WebSocket path (only after merge + deploy + token;
-the script `scripts/post-muse-event-ws.py` exists **only on the
-`muse-realtime` branch**, not on `main` — do not try to run it
-from a `main` checkout):
+Publish via the WebSocket path (only after deploy + token;
+the script `scripts/post-muse-event-ws.py` is on `main` since
+the merge):
 
 ```bash
 MUSE_EVENT_TOKEN=<from-environment-only> python3 scripts/post-muse-event-ws.py \
@@ -859,13 +886,16 @@ the git publisher does. Metadata only, reports max 500 chars.
 A failed POST here never breaks the feed — the git bridge remains
 the fallback and the durable record.
 
-Merge order: merge `muse-realtime` into `main` **only after**
-the work already on `main` has settled, rebase it against the then
-current `main` first (it touches `App.tsx`, so a merge against an
-old `main` will diverge), then deploy via Coolify as usual. The
-branch's Dockerfile change (installing production dependencies in
-the runtime stage, so `ws` exists at runtime) is required for the
-deployed runtime — do not merge the server change without it.
+Merge record: `muse-realtime` (6e28eb6) was cherry-picked onto
+the then-current `main` in the all-in-one batch (Decoupling +
+UX Overhaul + WebSocket merge). The only conflict was the
+`App.tsx` import line, resolved to the `src/muse` barrel import
+plus the socket import. `public/muse-data.json` was kept from
+`main` throughout — the branch's feed was never taken, so the
+token-observer event and `tokenUsage` survived the merge. The
+Dockerfile change (installing production dependencies in the
+runtime stage, so `ws` exists at runtime) came with the merge and
+is required — do not deploy the server change without it.
 
 ## 8. What is NOT possible (limits, stated once, plainly)
 
