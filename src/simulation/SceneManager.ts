@@ -12,6 +12,7 @@ import { WorldManager } from './world/WorldManager';
 import { MuseEnvironment } from './world/MuseEnvironment';
 import { useMuseStore } from '../muse/museStore';
 import { deriveMuseEmbodiedStates, type MuseEmbodiedState } from '../muse/museEmbodied';
+import { deriveSpatialSelection, gatherablePeers } from '../muse/museSpatial';
 import { MUSE_TEAM_ID } from '../muse/museSync';
 import type { MuseFeed } from '../muse/museTypes';
 
@@ -51,6 +52,14 @@ export class SceneManager {
   // after a successful application (controller present), so a poll
   // that arrives before characters load retries on the next poll.
   private lastMuseEmbodied = new Map<number, MuseEmbodiedState>();
+  // Spatial Interaction v1 (VIEW-ONLY): character index of the last
+  // 3D selection that already triggered a gathering, so clicking the
+  // same agent again does not re-walk peers that already gathered.
+  // Cleared on deselection, so a fresh click after deselecting
+  // gathers again. This is view state only — it never changes the
+  // feed, never queues a command, and never overrides embodied
+  // working/blocked placement (see applyMuseSpatialGathering).
+  private lastSpatialSelection: number | null = null;
   private driverManager: DriverManager | null = null;
   private simulation: AgentSimulation | null = null;
 
@@ -263,7 +272,7 @@ export class SceneManager {
         new InputManager(
           this.engine.renderer.domElement, this.stage.camera,
           () => this.controller!.getCPUPositions(), () => this.controller!.getCount(),
-          (idx) => { if (useUiStore.getState().isChatting) useUiStore.getState().setChatting(false); this.selectedIndex = idx !== activeSet.user.index ? idx : null; useUiStore.getState().setSelectedNpc(this.selectedIndex); },
+          (idx) => { if (useUiStore.getState().isChatting) useUiStore.getState().setChatting(false); this.selectedIndex = idx !== activeSet.user.index ? idx : null; useUiStore.getState().setSelectedNpc(this.selectedIndex); this.applyMuseSpatialGathering(this.selectedIndex); },
           (x, z) => this.driverManager?.getPlayerDriver().onFloorClick(x, z),
           (idx, pos) => useUiStore.getState().setHoveredNpc(idx, pos),
           () => this.poiManager.getAllPois(),
@@ -463,6 +472,53 @@ export class SceneManager {
       }
       this.lastMuseEmbodied.set(index, state);
     });
+  }
+
+  /**
+   * Spatial Interaction v1 (VIEW-ONLY, selection-triggered gathering).
+   *
+   * When the viewer clicks a Muse agent in 3D, idle subagent peers
+   * that share the selected agent's workspace walk to the nearest
+   * free 'idle'-arrival POIs (area/spawn POIs) around the selected
+   * agent, so teammates visibly gather near their shared work area.
+   * This is a LOCAL VIEW action only: it changes no feed state,
+   * sends nothing to Muse, and queues no command.
+   *
+   * Precedence, in order: disposed/no controller/non-Muse team ->
+   * skip; deselection or user character -> clear the last-selection
+   * marker and skip; same agent clicked again -> skip (no re-walk
+   * churn); working/blocked peers -> NEVER moved (embodied
+   * placement wins, and the next embodied state change on poll
+   * re-applies it); main-agent peers -> never moved (the
+   * coordinator is not gathered around a subagent). Idle peers
+   * walk with the existing crossfade walk -> idle clips; if no
+   * free POI or no path exists for a peer, that peer is simply
+   * left where it is. Gathering is transient by design: the idle
+   * driver may wander a gathered peer away later, and the next
+   * embodied state change for that peer wins — re-click the agent
+   * to gather again.
+   */
+  public applyMuseSpatialGathering(selectedIndex: number | null): void {
+    if (selectedIndex === null || selectedIndex === 0) {
+      this.lastSpatialSelection = null;
+      return;
+    }
+    if (this.isDisposed || !this.controller) return;
+    if (useTeamStore.getState().selectedAgentSetId !== MUSE_TEAM_ID) return;
+    if (this.lastSpatialSelection === selectedIndex) return;
+    const feed = useMuseStore.getState().feed;
+    const selection = deriveSpatialSelection(feed, selectedIndex);
+    if (!selection) return;
+    this.lastSpatialSelection = selectedIndex;
+    const embodied = deriveMuseEmbodiedStates(feed);
+    const selectedPos = this.controller.getCPUPosition(selectedIndex);
+    if (!selectedPos) return;
+    for (const peer of gatherablePeers(selection)) {
+      if (embodied.get(peer.index) !== 'idle') continue;
+      const poi = this.poiManager.getNearestFreePoi('idle', selectedPos);
+      if (!poi) continue;
+      this.controller.walkToPoi(peer.index, poi.id);
+    }
   }
 
   /** Blocked state: boardroom + 'listen' (waiting) pose on arrival. */
