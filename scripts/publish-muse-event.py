@@ -12,7 +12,18 @@ Usage:
     python3 scripts/publish-muse-event.py \
         --type milestone --workspace ade --agent sonia \
         --task muse-event-bridge --task-status done \
-        --report "Short milestone report"
+        --report "Short milestone report" \
+        --input-tokens 1200 --output-tokens 300 --cached-tokens 0
+
+Token counts (optional, integers, never negative): real Muse token
+counts for the session/step this event reports, published WITH the
+event. The dashboard panel re-computes its totals on every feed poll
+from the token fields on the events in the feed, so counts move
+regularly as new events are published. There is no auto-counter, no
+estimation from text length, and no live Muse token API: if no counts
+are passed, the event carries 0 and the panel honestly stays at 0
+until a count-bearing event is published. Token counts are counts,
+never secrets, and are never passed as a credential.
 
 What is published: metadata only -- agent/task/workspace ids and names,
 statuses, file paths, and a short report. NEVER passwords, API keys,
@@ -145,6 +156,12 @@ def main(argv=None) -> int:
                         help="New status for the task (optional).")
     parser.add_argument("--event-id", default="",
                         help="Explicit event id (default: generated).")
+    parser.add_argument("--input-tokens", type=int, default=0,
+                        help="Real Muse input tokens for this event (default 0, never negative).")
+    parser.add_argument("--output-tokens", type=int, default=0,
+                        help="Real Muse output tokens for this event (default 0, never negative).")
+    parser.add_argument("--cached-tokens", type=int, default=0,
+                        help="Real Muse cached input tokens for this event (default 0, never negative).")
     parser.add_argument("--feed", default=str(DEFAULT_FEED),
                         help="Feed JSON path (default: public/muse-data.json).")
     parser.add_argument("--dry-run", action="store_true",
@@ -154,6 +171,10 @@ def main(argv=None) -> int:
     if len(args.report) > MAX_REPORT_LEN:
         print(f"REFUSED: --report exceeds {MAX_REPORT_LEN} characters.", file=sys.stderr)
         return 2
+    for field in ("input_tokens", "output_tokens", "cached_tokens"):
+        if getattr(args, field) < 0:
+            print(f"REFUSED: --{field.replace('_', '-')} must not be negative.", file=sys.stderr)
+            return 2
     check_all(args)
 
     feed_path = Path(args.feed)
@@ -240,6 +261,9 @@ def main(argv=None) -> int:
         "taskId": task["id"] if task else None,
         "report": args.report,
         "filesChanged": files,
+        "inputTokens": args.input_tokens,
+        "outputTokens": args.output_tokens,
+        "cachedInputTokens": args.cached_tokens,
     }
 
     if args.dry_run:
@@ -249,6 +273,14 @@ def main(argv=None) -> int:
 
     feed["events"].append(event)
     feed["events"] = feed["events"][-MAX_EVENTS:]
+    # Feed totals = sum of token fields on the events currently in the
+    # feed (so totals move regularly with each published event, and can
+    # only fall if old events age out of the 200-event cap — documented).
+    feed["tokenUsage"] = {
+        "inputTokens": sum(int(e.get("inputTokens") or 0) for e in feed["events"]),
+        "outputTokens": sum(int(e.get("outputTokens") or 0) for e in feed["events"]),
+        "cachedInputTokens": sum(int(e.get("cachedInputTokens") or 0) for e in feed["events"]),
+    }
     feed["source"] = "live"
     feed["sourceLabel"] = LIVE_LABEL
     feed["generatedAt"] = now_iso()
@@ -264,6 +296,7 @@ def main(argv=None) -> int:
     if args.task_status:
         print(f"  task status -> {args.task_status}")
     print(f"  feed: {feed_path}  source: live  events: {len(feed['events'])}")
+    print(f"  token totals: {feed['tokenUsage']}")
     print("Next step: git add public/muse-data.json, commit it alone, push to main.")
     return 0
 
