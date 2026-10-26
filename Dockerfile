@@ -14,6 +14,10 @@ RUN npm run build
 
 FROM node:20-alpine AS runtime
 WORKDIR /app
+# server.js uses the 'ws' package for /ws broadcast, so production deps
+# must be present at runtime (previously only dist + server.js were copied).
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server.js ./server.js
 ENV PORT=3000
