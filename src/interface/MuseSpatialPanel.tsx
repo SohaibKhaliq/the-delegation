@@ -20,8 +20,9 @@ const MuseSpatialPanel: React.FC = () => {
   const selection = deriveSpatialSelection(feed, selectedNpcIndex);
   if (!selection) return null;
   const { agent, workspaceName, currentTask, lastReport, peers } = selection;
+  const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
   return (
-    <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50/50">
+    <div className="px-4 py-3 bg-zinc-50/50">
       <div className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
         Muse work — view-only
       </div>
@@ -32,11 +33,11 @@ const MuseSpatialPanel: React.FC = () => {
         </div>
         <div>
           <span className="font-bold text-zinc-900">Role: </span>
-          {agent.role} · Status: {agent.status}
+          {agent.role} · Status: {cap(agent.status)}
         </div>
         <div>
           <span className="font-bold text-zinc-900">Current task: </span>
-          {currentTask ? `${currentTask.title} (${currentTask.status})` : 'None in this feed'}
+          {currentTask ? `${currentTask.title} (${cap(currentTask.status)})` : 'None in this feed'}
         </div>
         {lastReport && (
           <div>
@@ -47,7 +48,7 @@ const MuseSpatialPanel: React.FC = () => {
         <div>
           <span className="font-bold text-zinc-900">Same workspace: </span>
           {peers.length > 0
-            ? peers.map((p) => `${p.name} (${p.status})`).join(', ')
+            ? peers.map((p) => `${p.name} (${cap(p.status)})`).join(', ')
             : 'No other agent in this workspace'}
         </div>
       </div>
