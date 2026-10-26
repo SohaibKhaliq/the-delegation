@@ -20,10 +20,21 @@ export interface MuseWorkspace {
   description?: string;
 }
 
+export type MuseAgentKind = 'main-agent' | 'subagent';
+
 export interface MuseAgent {
   id: string;
   name: string;
   role: string;
+  // Hierarchy: exactly one 'main-agent' (S.O.N.I.A, the coordinator) and
+  // any number of 'subagent' entries, one per real work function per
+  // workspace. Role names only — never fake person names. Older feed
+  // entries without `kind` are treated as 'subagent', except the agent
+  // named S.O.N.I.A, which is treated as 'main-agent'.
+  kind?: MuseAgentKind;
+  // Home workspace for this agent. The main agent is a GLOBAL coordinator:
+  // it coordinates every workspace even though its home workspaceId is
+  // 'the-delegation'. Subagents belong to exactly one workspace.
   workspaceId: string;
   status: MuseAgentStatus;
   currentTask?: string | null;
