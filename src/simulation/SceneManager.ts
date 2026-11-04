@@ -133,10 +133,13 @@ export class SceneManager {
       `3D unavailable: ${stage} — WebGPU required. Open this site in a WebGPU-capable browser (for example current Chrome on Windows) to see the 3D office.`,
       true,
     );
-    // WebGL fallback: only for WebGPU-stage failures. Office/setup
-    // failures keep the message above as the final state (the
-    // fallback loads the same office file, so it would fail too).
-    if ((stage === 'webgpu' || stage === 'renderer') && !this.webglFallbackAttempted) {
+    // WebGL fallback: for ANY init-stage failure, including 'setup'
+    // (the stage phones actually fail at — WebGPU-specific scene
+    // setup, not the office file itself). If the fallback also
+    // fails, its callback replaces this message with both reasons,
+    // so the message above is the final state only when the
+    // fallback fails too.
+    if (!this.webglFallbackAttempted) {
       this.webglFallbackAttempted = true;
       try {
         this.engine.renderer.domElement.style.display = 'none';
