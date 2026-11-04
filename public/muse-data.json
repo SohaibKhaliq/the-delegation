@@ -69,6 +69,42 @@
       "role": "builder",
       "status": "idle",
       "workspaceId": "the-delegation"
+    },
+    {
+      "currentTask": "trevora-hubfolio-visual-parity",
+      "id": "hubfolio-builder",
+      "lastReport": "Hubfolio creative-studio demo staged on GitHub Pages; all-pages visual parity check in progress, home verified, remaining pages in batches",
+      "name": "Hubfolio Builder",
+      "role": "builder",
+      "status": "running",
+      "workspaceId": "trevora-hubfolio"
+    },
+    {
+      "currentTask": "oryx-website-build",
+      "id": "oryx-builder",
+      "lastReport": "NexIQ theme chosen as final ORYX theme; build waits on owner purchase and download, no build started yet",
+      "name": "ORYX Builder",
+      "role": "builder",
+      "status": "pending",
+      "workspaceId": "oryx-business-center"
+    },
+    {
+      "currentTask": "ascii-reveal-release",
+      "id": "ascii-reveal-builder",
+      "lastReport": "Public MIT repo and GitHub Pages demo live and verified; npm publish still pending, no token handed over",
+      "name": "ASCII Reveal Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "ascii-reveal-vanilla"
+    },
+    {
+      "currentTask": "personal-portfolio-rebuild",
+      "id": "portfolio-builder",
+      "lastReport": "MINIMAL pass live-verified; FULL remainders, cursor check and shortcodes decision still open",
+      "name": "Portfolio Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "personal-portfolio"
     }
   ],
   "events": [
@@ -193,9 +229,61 @@
       "timestamp": "2026-10-26T18:27:00.220430Z",
       "type": "milestone",
       "workspaceId": "the-delegation"
+    },
+    {
+      "agentId": "hubfolio-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004720-52e00f",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Hubfolio creative-studio demo staged on GitHub Pages; all-pages visual parity check in progress, home verified, remaining pages in batches",
+      "taskId": "trevora-hubfolio-visual-parity",
+      "timestamp": "2026-11-04T00:47:20.769726Z",
+      "type": "started",
+      "workspaceId": "trevora-hubfolio"
+    },
+    {
+      "agentId": "oryx-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004720-85a840",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "NexIQ theme chosen as final ORYX theme; build waits on owner purchase and download, no build started yet",
+      "taskId": "oryx-website-build",
+      "timestamp": "2026-11-04T00:47:20.829049Z",
+      "type": "milestone",
+      "workspaceId": "oryx-business-center"
+    },
+    {
+      "agentId": "ascii-reveal-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004720-7a7d9a",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Public MIT repo and GitHub Pages demo live and verified; npm publish still pending, no token handed over",
+      "taskId": "ascii-reveal-release",
+      "timestamp": "2026-11-04T00:47:20.889632Z",
+      "type": "milestone",
+      "workspaceId": "ascii-reveal-vanilla"
+    },
+    {
+      "agentId": "portfolio-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004720-5fd8a7",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "MINIMAL pass live-verified; FULL remainders, cursor check and shortcodes decision still open",
+      "taskId": "personal-portfolio-rebuild",
+      "timestamp": "2026-11-04T00:47:20.952291Z",
+      "type": "milestone",
+      "workspaceId": "personal-portfolio"
     }
   ],
-  "generatedAt": "2026-11-04T00:44:21.759346Z",
+  "generatedAt": "2026-11-04T00:47:20.952323Z",
   "note": "View-only snapshot. Main agent S.O.N.I.A coordinates all workspaces; subagents are role-named per workspace. No agent is started, commanded, or approved from this dashboard. Control stays in Muse chat.",
   "source": "live",
   "sourceLabel": "LIVE — real Muse event feed, updated via the git-based bridge. View-only: control stays in Muse chat.",
@@ -290,6 +378,42 @@
       "status": "done",
       "title": "Muse hierarchy mapping into Delegation UI",
       "workspaceId": "the-delegation"
+    },
+    {
+      "agentId": "hubfolio-builder",
+      "filesChanged": [],
+      "id": "trevora-hubfolio-visual-parity",
+      "report": "Hubfolio creative-studio demo staged on GitHub Pages; all-pages visual parity check in progress, home verified, remaining pages in batches",
+      "status": "running",
+      "title": "Trevora Hubfolio visual parity (all pages, same-to-same)",
+      "workspaceId": "trevora-hubfolio"
+    },
+    {
+      "agentId": "oryx-builder",
+      "filesChanged": [],
+      "id": "oryx-website-build",
+      "report": "NexIQ theme chosen as final ORYX theme; build waits on owner purchase and download, no build started yet",
+      "status": "pending",
+      "title": "ORYX website build (NexIQ theme)",
+      "workspaceId": "oryx-business-center"
+    },
+    {
+      "agentId": "ascii-reveal-builder",
+      "filesChanged": [],
+      "id": "ascii-reveal-release",
+      "report": "Public MIT repo and GitHub Pages demo live and verified; npm publish still pending, no token handed over",
+      "status": "pending",
+      "title": "ascii-reveal-vanilla public release",
+      "workspaceId": "ascii-reveal-vanilla"
+    },
+    {
+      "agentId": "portfolio-builder",
+      "filesChanged": [],
+      "id": "personal-portfolio-rebuild",
+      "report": "MINIMAL pass live-verified; FULL remainders, cursor check and shortcodes decision still open",
+      "status": "pending",
+      "title": "Personal portfolio rebuild",
+      "workspaceId": "personal-portfolio"
     }
   ],
   "tokenUsage": {
@@ -323,6 +447,26 @@
       "description": "Work tracked via the Muse event bridge.",
       "id": "the-delegation",
       "name": "the-delegation"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "trevora-hubfolio",
+      "name": "Trevora Hubfolio"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "oryx-business-center",
+      "name": "ORYX Business Center"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "ascii-reveal-vanilla",
+      "name": "ascii-reveal-vanilla"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "personal-portfolio",
+      "name": "Personal Portfolio"
     }
   ]
 }
