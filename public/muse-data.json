@@ -11,20 +11,20 @@
       "workspaceId": "the-delegation"
     },
     {
-      "currentTask": "ade-groups-verification",
+      "currentTask": "ade-ui-ux-redesign",
       "id": "ade-builder",
       "kind": "subagent",
-      "lastReport": "ADE Groups 2-4 stubs were code-complete; live verification was pending at seed time.",
+      "lastReport": "Polish existing ADE UI/UX, keeping current structure; redesign work not yet started in this feed record",
       "name": "ADE Builder",
       "role": "builder",
       "status": "idle",
       "workspaceId": "ade"
     },
     {
-      "currentTask": null,
+      "currentTask": "legacy-search-removal",
       "id": "legacy-admin",
       "kind": "subagent",
-      "lastReport": "Legacy stats section restored and live-verified on 2026-10-26.",
+      "lastReport": "Web search results gone, Maps listing still present, Search Console removal Processing, sign-in step owner",
       "name": "Legacy Admin",
       "role": "builder",
       "status": "idle",
@@ -41,10 +41,10 @@
       "workspaceId": "trevora"
     },
     {
-      "currentTask": null,
+      "currentTask": "zentacode-php-security-patch",
       "id": "zentacode-builder",
       "kind": "subagent",
-      "lastReport": "No ZentaCode task in this feed yet. Workspace shown so its subagent role exists when work is reported. No activity claimed.",
+      "lastReport": "Laravel 13 phase 1 complete on upgrade branch; lockfile awaits owner machine, beta and live wait",
       "name": "ZentaCode Builder",
       "role": "builder",
       "status": "idle",
@@ -105,6 +105,87 @@
       "role": "builder",
       "status": "idle",
       "workspaceId": "personal-portfolio"
+    },
+    {
+      "currentTask": "banshee-website",
+      "id": "banshee-builder",
+      "lastReport": "Plugin v1.8.13 live, roadside map live with 20 area markers; opening zoom and phone header checks still pending",
+      "name": "Banshee Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "banshee-auto-repair"
+    },
+    {
+      "currentTask": "gims-website-seo",
+      "id": "gims-builder",
+      "lastReport": "GIMS site developed; dept SEO blocked by panel form bug and dept routes still 404, pending owner decision",
+      "name": "GIMS Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "gims"
+    },
+    {
+      "currentTask": "workos-domain-move",
+      "id": "workos-builder",
+      "lastReport": "Domain moved to workos.trevoramedia.com, Coolify change done and app Running; owner browser check still pending",
+      "name": "WorkOS Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "trevora-workos"
+    },
+    {
+      "currentTask": "jyn-website",
+      "id": "jyn-builder",
+      "lastReport": "Cleaning company website in Qatar; name and domain only on record, no further detail recorded",
+      "name": "JYN Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "jyn-qa"
+    },
+    {
+      "currentTask": "cfo-store",
+      "id": "cfo-builder",
+      "lastReport": "Next.js frontend plus Laravel admin intended; name and domain only on record, no further detail recorded",
+      "name": "CFO Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "cfo-store"
+    },
+    {
+      "currentTask": "faceoff-contact-numbers",
+      "id": "faceoff-builder",
+      "lastReport": "Contact page numbers now local numbers with no country code, live-verified; footer numbers untouched per order",
+      "name": "Faceoff Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "faceoffbarber"
+    },
+    {
+      "currentTask": "job-interviews-5-6",
+      "id": "job-builder",
+      "lastReport": "Digest auto-apply running every 12h; goal 5-6 interviews by about 18 Nov 2026, salary band PKR 85,000 to 120,000",
+      "name": "Job Builder",
+      "role": "builder",
+      "status": "running",
+      "workspaceId": "job-hunting"
+    },
+    {
+      "currentTask": "trevora-hero-sections",
+      "id": "hero-builder",
+      "lastReport": "60 heroes live on GitHub Pages, gold accent, exact tagline; 3.8x ROAS hero removal pending owner word",
+      "name": "Hero Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "trevora-hero-sections"
+    },
+    {
+      "currentTask": "cms-docker-deployment",
+      "id": "docker-builder",
+      "lastReport": "Shared Docker setup for Legacy and Trevora CMS, Ubuntu 24.04 plus PHP 8.4-FPM plus Nginx, Coolify-ready",
+      "name": "Docker Builder",
+      "role": "builder",
+      "status": "idle",
+      "workspaceId": "cms-docker-deployment"
     }
   ],
   "events": [
@@ -281,9 +362,178 @@
       "timestamp": "2026-11-04T00:47:20.952291Z",
       "type": "milestone",
       "workspaceId": "personal-portfolio"
+    },
+    {
+      "agentId": "banshee-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-03fd87",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Plugin v1.8.13 live, roadside map live with 20 area markers; opening zoom and phone header checks still pending",
+      "taskId": "banshee-website",
+      "timestamp": "2026-11-04T00:48:07.200554Z",
+      "type": "milestone",
+      "workspaceId": "banshee-auto-repair"
+    },
+    {
+      "agentId": "gims-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-307a55",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "GIMS site developed; dept SEO blocked by panel form bug and dept routes still 404, pending owner decision",
+      "taskId": "gims-website-seo",
+      "timestamp": "2026-11-04T00:48:07.262293Z",
+      "type": "milestone",
+      "workspaceId": "gims"
+    },
+    {
+      "agentId": "workos-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-e0b97f",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Domain moved to workos.trevoramedia.com, Coolify change done and app Running; owner browser check still pending",
+      "taskId": "workos-domain-move",
+      "timestamp": "2026-11-04T00:48:07.323006Z",
+      "type": "milestone",
+      "workspaceId": "trevora-workos"
+    },
+    {
+      "agentId": "jyn-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-84c129",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Cleaning company website in Qatar; name and domain only on record, no further detail recorded",
+      "taskId": "jyn-website",
+      "timestamp": "2026-11-04T00:48:07.383751Z",
+      "type": "milestone",
+      "workspaceId": "jyn-qa"
+    },
+    {
+      "agentId": "cfo-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-b60247",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Next.js frontend plus Laravel admin intended; name and domain only on record, no further detail recorded",
+      "taskId": "cfo-store",
+      "timestamp": "2026-11-04T00:48:07.444142Z",
+      "type": "milestone",
+      "workspaceId": "cfo-store"
+    },
+    {
+      "agentId": "faceoff-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-29b841",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Contact page numbers now local numbers with no country code, live-verified; footer numbers untouched per order",
+      "taskId": "faceoff-contact-numbers",
+      "timestamp": "2026-11-04T00:48:07.504818Z",
+      "type": "milestone",
+      "workspaceId": "faceoffbarber"
+    },
+    {
+      "agentId": "job-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-c1db1d",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Digest auto-apply running every 12h; goal 5-6 interviews by about 18 Nov 2026, salary band PKR 85,000 to 120,000",
+      "taskId": "job-interviews-5-6",
+      "timestamp": "2026-11-04T00:48:07.566530Z",
+      "type": "milestone",
+      "workspaceId": "job-hunting"
+    },
+    {
+      "agentId": "hero-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-360c07",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "60 heroes live on GitHub Pages, gold accent, exact tagline; 3.8x ROAS hero removal pending owner word",
+      "taskId": "trevora-hero-sections",
+      "timestamp": "2026-11-04T00:48:07.631025Z",
+      "type": "milestone",
+      "workspaceId": "trevora-hero-sections"
+    },
+    {
+      "agentId": "docker-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-1e642a",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Shared Docker setup for Legacy and Trevora CMS, Ubuntu 24.04 plus PHP 8.4-FPM plus Nginx, Coolify-ready",
+      "taskId": "cms-docker-deployment",
+      "timestamp": "2026-11-04T00:48:07.693550Z",
+      "type": "milestone",
+      "workspaceId": "cms-docker-deployment"
+    },
+    {
+      "agentId": "ade-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-d4f812",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Staging migrated fully from MySQL to PostgreSQL, backend and panel on pgsql, cutover verified",
+      "taskId": "ade-postgresql-migration",
+      "timestamp": "2026-11-04T00:48:07.759969Z",
+      "type": "milestone",
+      "workspaceId": "ade"
+    },
+    {
+      "agentId": "ade-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-95e35b",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Polish existing ADE UI/UX, keeping current structure; redesign work not yet started in this feed record",
+      "taskId": "ade-ui-ux-redesign",
+      "timestamp": "2026-11-04T00:48:07.821474Z",
+      "type": "milestone",
+      "workspaceId": "ade"
+    },
+    {
+      "agentId": "zentacode-builder",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-bc028e",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Laravel 13 phase 1 complete on upgrade branch; lockfile awaits owner machine, beta and live wait",
+      "taskId": "zentacode-php-security-patch",
+      "timestamp": "2026-11-04T00:48:07.884928Z",
+      "type": "milestone",
+      "workspaceId": "zentacode"
+    },
+    {
+      "agentId": "legacy-admin",
+      "cachedInputTokens": 0,
+      "filesChanged": [],
+      "id": "evt-20261104T004807-c53152",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "report": "Web search results gone, Maps listing still present, Search Console removal Processing, sign-in step owner",
+      "taskId": "legacy-search-removal",
+      "timestamp": "2026-11-04T00:48:07.945355Z",
+      "type": "milestone",
+      "workspaceId": "legacy-cms"
     }
   ],
-  "generatedAt": "2026-11-04T00:47:20.952323Z",
+  "generatedAt": "2026-11-04T00:48:07.945392Z",
   "note": "View-only snapshot. Main agent S.O.N.I.A coordinates all workspaces; subagents are role-named per workspace. No agent is started, commanded, or approved from this dashboard. Control stays in Muse chat.",
   "source": "live",
   "sourceLabel": "LIVE — real Muse event feed, updated via the git-based bridge. View-only: control stays in Muse chat.",
@@ -414,6 +664,123 @@
       "status": "pending",
       "title": "Personal portfolio rebuild",
       "workspaceId": "personal-portfolio"
+    },
+    {
+      "agentId": "banshee-builder",
+      "filesChanged": [],
+      "id": "banshee-website",
+      "report": "Plugin v1.8.13 live, roadside map live with 20 area markers; opening zoom and phone header checks still pending",
+      "status": "pending",
+      "title": "Banshee website and roadside map",
+      "workspaceId": "banshee-auto-repair"
+    },
+    {
+      "agentId": "gims-builder",
+      "filesChanged": [],
+      "id": "gims-website-seo",
+      "report": "GIMS site developed; dept SEO blocked by panel form bug and dept routes still 404, pending owner decision",
+      "status": "blocked",
+      "title": "GIMS website SEO and department pages",
+      "workspaceId": "gims"
+    },
+    {
+      "agentId": "workos-builder",
+      "filesChanged": [],
+      "id": "workos-domain-move",
+      "report": "Domain moved to workos.trevoramedia.com, Coolify change done and app Running; owner browser check still pending",
+      "status": "pending",
+      "title": "Trevora WorkOS domain move",
+      "workspaceId": "trevora-workos"
+    },
+    {
+      "agentId": "jyn-builder",
+      "filesChanged": [],
+      "id": "jyn-website",
+      "report": "Cleaning company website in Qatar; name and domain only on record, no further detail recorded",
+      "status": "pending",
+      "title": "JYN cleaning company website",
+      "workspaceId": "jyn-qa"
+    },
+    {
+      "agentId": "cfo-builder",
+      "filesChanged": [],
+      "id": "cfo-store",
+      "report": "Next.js frontend plus Laravel admin intended; name and domain only on record, no further detail recorded",
+      "status": "pending",
+      "title": "CFO Store website and admin",
+      "workspaceId": "cfo-store"
+    },
+    {
+      "agentId": "faceoff-builder",
+      "filesChanged": [],
+      "id": "faceoff-contact-numbers",
+      "report": "Contact page numbers now local numbers with no country code, live-verified; footer numbers untouched per order",
+      "status": "done",
+      "title": "Faceoffbarber contact numbers",
+      "workspaceId": "faceoffbarber"
+    },
+    {
+      "agentId": "job-builder",
+      "filesChanged": [],
+      "id": "job-interviews-5-6",
+      "report": "Digest auto-apply running every 12h; goal 5-6 interviews by about 18 Nov 2026, salary band PKR 85,000 to 120,000",
+      "status": "running",
+      "title": "5-6 job interviews in a month",
+      "workspaceId": "job-hunting"
+    },
+    {
+      "agentId": "hero-builder",
+      "filesChanged": [],
+      "id": "trevora-hero-sections",
+      "report": "60 heroes live on GitHub Pages, gold accent, exact tagline; 3.8x ROAS hero removal pending owner word",
+      "status": "pending",
+      "title": "Trevora hero sections",
+      "workspaceId": "trevora-hero-sections"
+    },
+    {
+      "agentId": "docker-builder",
+      "filesChanged": [],
+      "id": "cms-docker-deployment",
+      "report": "Shared Docker setup for Legacy and Trevora CMS, Ubuntu 24.04 plus PHP 8.4-FPM plus Nginx, Coolify-ready",
+      "status": "pending",
+      "title": "CMS Docker deployment setup",
+      "workspaceId": "cms-docker-deployment"
+    },
+    {
+      "agentId": "ade-builder",
+      "filesChanged": [],
+      "id": "ade-postgresql-migration",
+      "report": "Staging migrated fully from MySQL to PostgreSQL, backend and panel on pgsql, cutover verified",
+      "status": "done",
+      "title": "ADE PostgreSQL migration",
+      "workspaceId": "ade"
+    },
+    {
+      "agentId": "ade-builder",
+      "filesChanged": [],
+      "id": "ade-ui-ux-redesign",
+      "report": "Polish existing ADE UI/UX, keeping current structure; redesign work not yet started in this feed record",
+      "status": "pending",
+      "title": "ADE app UI/UX redesign",
+      "workspaceId": "ade"
+    },
+    {
+      "agentId": "zentacode-builder",
+      "filesChanged": [],
+      "id": "zentacode-php-security-patch",
+      "report": "Laravel 13 phase 1 complete on upgrade branch; lockfile awaits owner machine, beta and live wait",
+      "status": "pending",
+      "title": "ZentaCode PHP security patch",
+      "workspaceId": "zentacode"
+    },
+    {
+      "agentId": "legacy-admin",
+      "filesChanged": [],
+      "id": "legacy-search-removal",
+      "report": "Web search results gone, Maps listing still present, Search Console removal Processing, sign-in step owner",
+      "status": "pending",
+      "title": "Legacy Group Google search removal",
+      "workspaceId": "legacy-cms"
     }
   ],
   "tokenUsage": {
@@ -467,6 +834,51 @@
       "description": "Work tracked via the Muse event bridge.",
       "id": "personal-portfolio",
       "name": "Personal Portfolio"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "banshee-auto-repair",
+      "name": "Banshee Auto Repair"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "gims",
+      "name": "GIMS"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "trevora-workos",
+      "name": "Trevora WorkOS"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "jyn-qa",
+      "name": "JYN.qa"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "cfo-store",
+      "name": "CFO Store"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "faceoffbarber",
+      "name": "Faceoffbarber"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "job-hunting",
+      "name": "Job Hunting"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "trevora-hero-sections",
+      "name": "Trevora Hero Sections"
+    },
+    {
+      "description": "Work tracked via the Muse event bridge.",
+      "id": "cms-docker-deployment",
+      "name": "CMS Docker Deployment"
     }
   ]
 }
