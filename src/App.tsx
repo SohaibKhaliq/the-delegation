@@ -12,6 +12,7 @@ import { OutputReviewModal } from './interface/OutputReviewModal';
 import SimulationView from './interface/SimulationView';
 import { SceneContext } from './simulation/SceneContext';
 import { SceneManager } from './simulation/SceneManager';
+import { WebGLFallbackScene } from './simulation/webgl/WebGLFallbackScene';
 import { useMuseStore, startMusePolling, connectMuseSocket } from './muse';
 
 
@@ -33,6 +34,10 @@ export const SCENE_INIT_WATCHDOG_MS = 25000;
 const App: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const managerRef = useRef<SceneManager | null>(null);
+  // WebGL fallback mounted directly only if the SceneManager
+  // constructor itself throws (before its own fallback wiring can
+  // run). View-only display; disposed on unmount like the manager.
+  const fallbackRef = useRef<WebGLFallbackScene | null>(null);
   const [sceneManager, setSceneManager] = useState<SceneManager | null>(null);
   const { viewMode } = useCoreStore();
 
@@ -115,7 +120,22 @@ const App: React.FC = () => {
         }, SCENE_INIT_WATCHDOG_MS);
       } catch (err) {
         console.error('[App] 3D scene failed to construct:', err);
-        showSceneUnavailable(canvasRef.current);
+        // Same WebGL fallback as SceneManager's WebGPU-failure
+        // path, for the case where construction itself threw.
+        // Only if it also fails does the fatal message stay.
+        try {
+          fallbackRef.current = new WebGLFallbackScene(
+            canvasRef.current,
+            clearWatchdog,
+            (reason) => {
+              console.error('[App] WebGL fallback also failed:', reason);
+              showSceneUnavailable(canvasRef.current!);
+            },
+          );
+        } catch (fallbackErr) {
+          console.error('[App] WebGL fallback failed to construct:', fallbackErr);
+          showSceneUnavailable(canvasRef.current);
+        }
       }
     }
 
@@ -125,6 +145,10 @@ const App: React.FC = () => {
         managerRef.current.dispose();
         managerRef.current = null;
         setSceneManager(null);
+      }
+      if (fallbackRef.current) {
+        fallbackRef.current.dispose();
+        fallbackRef.current = null;
       }
     };
   }, []);
