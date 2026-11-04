@@ -10,6 +10,7 @@ import { NavMeshManager } from './pathfinding/NavMeshManager';
 import { PoiManager } from './world/PoiManager';
 import { WorldManager } from './world/WorldManager';
 import { MuseEnvironment } from './world/MuseEnvironment';
+import { WebGLFallbackScene } from './webgl/WebGLFallbackScene';
 import { useMuseStore, deriveMuseEmbodiedStates, type MuseEmbodiedState, deriveSpatialSelection, gatherablePeers, MUSE_TEAM_ID, type MuseFeed } from '../muse';
 
 import { AgentSimulation } from './core/AgentSimulation';
@@ -76,6 +77,17 @@ export class SceneManager {
   private initError: string | null = null;
   private initErrorElement: HTMLElement | null = null;
 
+  // WebGL fallback (phone path, v1): mounted ONLY when the WebGPU
+  // path fails at the 'webgpu' or 'renderer' stage (missing
+  // navigator.gpu, init failure, or 15s timeout). The WebGPU
+  // code above is untouched; this is a separate, simpler scene
+  // (see src/simulation/webgl/WebGLFallbackScene.ts). The failed
+  // WebGPU canvas is hidden so it cannot cover the fallback.
+  // "3D unavailable" stays the final state ONLY if the fallback
+  // also fails, with both reasons shown.
+  private webglFallback: WebGLFallbackScene | null = null;
+  private webglFallbackAttempted = false;
+
   // Whole-init watchdog support (attempt 2): set ONLY when the
   // animation loop is actually started, i.e. init() has fully
   // succeeded (office, with or without characters). A hanging stage
@@ -121,6 +133,37 @@ export class SceneManager {
       `3D unavailable: ${stage} — WebGPU required. Open this site in a WebGPU-capable browser (for example current Chrome on Windows) to see the 3D office.`,
       true,
     );
+    // WebGL fallback: only for WebGPU-stage failures. Office/setup
+    // failures keep the message above as the final state (the
+    // fallback loads the same office file, so it would fail too).
+    if ((stage === 'webgpu' || stage === 'renderer') && !this.webglFallbackAttempted) {
+      this.webglFallbackAttempted = true;
+      try {
+        this.engine.renderer.domElement.style.display = 'none';
+      } catch {
+        // Hiding a never-drawn canvas is best-effort only.
+      }
+      this.webglFallback = new WebGLFallbackScene(
+        this.container,
+        () => {
+          // Fallback succeeded: it, not the error, is the state.
+          // Clearing initError also keeps App's watchdog from
+          // layering a second fatal message on top of it.
+          this.initError = null;
+          this.initErrorElement?.remove();
+          this.initErrorElement = null;
+          this.initSucceeded = true;
+          this.onInitialized?.();
+        },
+        (reason) => {
+          this.initError = 'webgl-fallback';
+          this.showInitMessage(
+            `3D unavailable: ${stage} (WebGPU) and the WebGL fallback also failed (${reason}). Open this site in a WebGPU-capable browser (for example current Chrome on Windows) to see the 3D office.`,
+            true,
+          );
+        },
+      );
+    }
   }
 
   private warnCharactersUnavailable(): void {
@@ -647,5 +690,5 @@ export class SceneManager {
     this.stage.setChatMode(false, false);
   }
 
-  public dispose() { this.isDisposed = true; this.resizeObserver.disconnect(); this.unsubs.forEach(u => u()); this.initErrorElement?.remove(); this.initErrorElement = null; this.driverManager?.dispose(); this.engine.dispose(); }
+  public dispose() { this.isDisposed = true; this.resizeObserver.disconnect(); this.unsubs.forEach(u => u()); this.initErrorElement?.remove(); this.initErrorElement = null; this.driverManager?.dispose(); this.webglFallback?.dispose(); this.webglFallback = null; this.engine.dispose(); }
 }
