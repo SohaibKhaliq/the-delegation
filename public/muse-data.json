@@ -291,10 +291,10 @@
       "agentId": "sonia",
       "cachedInputTokens": 0,
       "id": "token-observer",
-      "inputTokens": 6496627685,
-      "outputTokens": 32250070,
+      "inputTokens": 6498715892,
+      "outputTokens": 32260675,
       "report": "Token observer: cumulative totals from all Muse chats, updated from muse.db",
-      "timestamp": "2026-11-11T14:09:31.430471Z",
+      "timestamp": "2026-11-11T15:09:31.204180Z",
       "type": "milestone",
       "workspaceId": "the-delegation"
     },
@@ -533,7 +533,7 @@
       "workspaceId": "legacy-cms"
     }
   ],
-  "generatedAt": "2026-11-11T14:09:31.430502Z",
+  "generatedAt": "2026-11-11T15:09:31.204217Z",
   "note": "View-only snapshot. Main agent S.O.N.I.A coordinates all workspaces; subagents are role-named per workspace. No agent is started, commanded, or approved from this dashboard. Control stays in Muse chat.",
   "source": "live",
   "sourceLabel": "LIVE — real Muse event feed, updated via the git-based bridge. View-only: control stays in Muse chat.",
@@ -785,8 +785,8 @@
   ],
   "tokenUsage": {
     "cachedInputTokens": 0,
-    "inputTokens": 6496627685,
-    "outputTokens": 32250070
+    "inputTokens": 6498715892,
+    "outputTokens": 32260675
   },
   "version": 1,
   "workspaces": [
